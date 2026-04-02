@@ -8,24 +8,22 @@ platforms:
   - linux
 categories:
   - case-management
-  - compliance-management
-  - business-process-management
-  - customer-service-and-support
+  - healthcare
+  - workflow-management
   - data-analytics
+  - compliance-management
 developmentStatus: development
 softwareType: standalone/web
 description:
   sv:
-    shortDescription: Modulär svensk vårdgivarplattform för patienthantering och klinisk dokumentation
-    longDescription: CuraNexus är en process-driven vårdplattform byggd för svenska vårdgivare. Systemet hanterar patientidentitet, vårdmöten, klinisk dokumentation, triagering och uppgiftshantering med stöd för FHIR R4 och PDL-kompatibel revision.
+    shortDescription: Modulär svenskanpassad vårdgivarplattform för hantering av patientdata och vårdprocesser
+    longDescription: CuraNexus är en komplett vårdgivarplattform byggd för svenska vårdgivare med stöd för patientidentitet, vårdmöten, klinisk dokumentation, triagering enligt RETTS, samt PDL-kompatibel auditloggning.
     features:
       - Patientidentitetshantering
-      - Klinisk dokumentation och journalföring
       - RETTS-inspirerat triagesystem
-      - FHIR R4-kompatibel API-gateway
-      - PDL-kompatibel revisionsloggning
-      - Arbetsflödes- och uppgiftshantering
-      - RBAC och ABAC-auktorisering
+      - PDL-kompatibel auditloggning
+      - FHIR R4-stöd via HAPI FHIR
+      - Modulär arkitektur med mikrotjänster
 legal:
   license: EUPL-1.2
   repoOwner: Cetriq
@@ -50,10 +48,10 @@ x-samhallskodex:
   integration:
     apiStyles:
       - rest
+  ai:
+    enabled: false
   governance:
     opennessLevel: open-source
     dataHosting:
       locality: sweden
     vendorDependency: low
-  ai:
-    enabled: false
