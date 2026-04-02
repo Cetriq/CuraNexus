@@ -95,4 +95,6 @@ modules/
 
 ## License
 
-Proprietary - All rights reserved.
+Licensed under the [European Union Public Licence (EUPL) v1.2](LICENSE).
+
+The EUPL is the official open source licence of the European Union, designed for public sector software sharing across EU member states.
