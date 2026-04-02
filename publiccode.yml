@@ -1,0 +1,56 @@
+publiccodeYmlVersion: "0.3"
+name: CuraNexus
+url: https://github.com/Cetriq/CuraNexus
+releaseDate: 2026-04-02
+softwareVersion: development
+platforms:
+  - web
+  - linux
+categories:
+  - case-management
+  - healthcare
+  - workflow-management
+  - compliance-management
+  - data-analytics
+developmentStatus: development
+softwareType: standalone/web
+description:
+  sv:
+    shortDescription: Modulär vårdgivarplattform för svenska hälso- och sjukvården med FHIR-stöd och PDL-kompatibel audit-loggning
+    longDescription: CuraNexus är en processorienterad vårdplattform som tillhandahåller patientidentitetshantering, vårdmöten, klinisk dokumentation, triagering enligt RETTS och arbetsflödeshantering för svenska vårdgivare.
+    features:
+      - FHIR R4-kompatibel API
+      - RETTS-inspirerad triagering
+      - PDL-kompatibel audit-loggning
+      - Modulär mikroservicearkitektur
+      - Rollbaserad auktorisering (RBAC/ABAC)
+      - Klinisk dokumentation och journalföring
+legal:
+  license: EUPL-1.2
+  repoOwner: Cetriq
+maintenance:
+  type: internal
+  contacts:
+    - name: Clas Törnquist
+      email: clas.tornquist@hotmail.com
+localisation:
+  localisationReady: true
+  availableLanguages:
+    - sv
+    - en
+x-samhallskodex:
+  profileVersion: "0.1"
+  architecture:
+    ui:
+      platform: api
+    backend:
+      architecture: container
+      runtime: Java
+  integration:
+    apiStyles:
+      - rest
+  governance:
+    opennessLevel: open-source
+    dataHosting:
+      locality: sweden
+    vendorDependency: low
