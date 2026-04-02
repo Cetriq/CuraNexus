@@ -1,0 +1,398 @@
+openapi: 3.0.3
+info:
+  title: Cura Nexus API Gateway
+  description: |
+    Unified API Gateway for Cura Nexus healthcare platform.
+
+    This gateway provides:
+    - Centralized routing to all backend services
+    - FHIR R4 compatible endpoints
+    - Circuit breaker protection
+    - Rate limiting
+    - Health aggregation
+
+    ## Backend Services
+
+    | Service | Port | Path Prefix |
+    |---------|------|-------------|
+    | Patient (A1) | 8080 | /api/v1/patients |
+    | Encounter (A2) | 8081 | /api/v1/encounters |
+    | Journal (A3) | 8082 | /api/v1/notes, diagnoses, procedures, observations |
+    | Task (B1) | 8083 | /api/v1/tasks, reminders, delegations, watches |
+    | Authorization (C2) | 8084 | /api/v1/users, roles, permissions, care-relations, access |
+
+    ## FHIR Endpoints
+
+    FHIR R4 compatible endpoints are available under `/fhir/`:
+    - `/fhir/Patient` - Patient resources
+    - `/fhir/Encounter` - Encounter resources
+
+  version: 1.0.0
+  contact:
+    name: Cura Nexus Team
+    email: support@curanexus.se
+
+servers:
+  - url: http://localhost:8085
+    description: Local development gateway
+
+tags:
+  - name: Gateway
+    description: Gateway management endpoints
+  - name: Health
+    description: Service health and status
+  - name: FHIR
+    description: FHIR R4 compatible endpoints
+  - name: Services
+    description: Service registry and discovery
+
+paths:
+  /gateway/health:
+    get:
+      tags:
+        - Health
+      summary: Get aggregated health status
+      description: Returns health status of all backend services
+      operationId: getAggregatedHealth
+      responses:
+        '200':
+          description: All services healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AggregatedHealthResponse'
+        '503':
+          description: One or more services unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AggregatedHealthResponse'
+
+  /gateway/services:
+    get:
+      tags:
+        - Services
+      summary: List registered services
+      description: Returns list of all registered backend services
+      operationId: listServices
+      responses:
+        '200':
+          description: List of services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServiceInfo'
+
+  /gateway/services/{serviceId}/health:
+    get:
+      tags:
+        - Services
+      summary: Get service health
+      description: Returns health status of a specific service
+      operationId: getServiceHealth
+      parameters:
+        - name: serviceId
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [patient, encounter, journal, task, authorization]
+      responses:
+        '200':
+          description: Service health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceHealth'
+        '404':
+          description: Service not found
+
+  /gateway/routes:
+    get:
+      tags:
+        - Gateway
+      summary: List all routes
+      description: Returns all configured gateway routes
+      operationId: listRoutes
+      responses:
+        '200':
+          description: List of routes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RouteInfo'
+
+  /gateway/metrics:
+    get:
+      tags:
+        - Gateway
+      summary: Get gateway metrics
+      description: Returns gateway performance metrics
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Gateway metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewayMetrics'
+
+  /fhir/metadata:
+    get:
+      tags:
+        - FHIR
+      summary: Get FHIR capability statement
+      description: Returns the FHIR CapabilityStatement describing supported resources
+      operationId: getFhirMetadata
+      responses:
+        '200':
+          description: FHIR CapabilityStatement
+          content:
+            application/fhir+json:
+              schema:
+                type: object
+
+  /fhir/Patient:
+    get:
+      tags:
+        - FHIR
+      summary: Search patients (FHIR)
+      description: Search for Patient resources using FHIR search parameters
+      operationId: searchFhirPatients
+      parameters:
+        - name: identifier
+          in: query
+          description: Patient identifier (personnummer)
+          schema:
+            type: string
+        - name: family
+          in: query
+          description: Family name
+          schema:
+            type: string
+        - name: given
+          in: query
+          description: Given name
+          schema:
+            type: string
+        - name: _count
+          in: query
+          description: Number of results to return
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: FHIR Bundle of Patient resources
+          content:
+            application/fhir+json:
+              schema:
+                type: object
+
+  /fhir/Patient/{id}:
+    get:
+      tags:
+        - FHIR
+      summary: Get patient by ID (FHIR)
+      description: Retrieve a Patient resource by ID
+      operationId: getFhirPatient
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: FHIR Patient resource
+          content:
+            application/fhir+json:
+              schema:
+                type: object
+        '404':
+          description: Patient not found
+
+  /fhir/Encounter:
+    get:
+      tags:
+        - FHIR
+      summary: Search encounters (FHIR)
+      description: Search for Encounter resources using FHIR search parameters
+      operationId: searchFhirEncounters
+      parameters:
+        - name: patient
+          in: query
+          description: Patient reference
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Encounter status
+          schema:
+            type: string
+        - name: _count
+          in: query
+          description: Number of results to return
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: FHIR Bundle of Encounter resources
+          content:
+            application/fhir+json:
+              schema:
+                type: object
+
+  /fhir/Encounter/{id}:
+    get:
+      tags:
+        - FHIR
+      summary: Get encounter by ID (FHIR)
+      description: Retrieve an Encounter resource by ID
+      operationId: getFhirEncounter
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: FHIR Encounter resource
+          content:
+            application/fhir+json:
+              schema:
+                type: object
+        '404':
+          description: Encounter not found
+
+  /fallback/{service}:
+    get:
+      tags:
+        - Gateway
+      summary: Fallback endpoint
+      description: Returns fallback response when service is unavailable
+      operationId: getFallback
+      parameters:
+        - name: service
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FallbackResponse'
+
+components:
+  schemas:
+    AggregatedHealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN, DEGRADED]
+        timestamp:
+          type: string
+          format: date-time
+        services:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ServiceHealth'
+
+    ServiceInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        url:
+          type: string
+        healthPath:
+          type: string
+        status:
+          type: string
+          enum: [UP, DOWN, UNKNOWN]
+        pathPrefixes:
+          type: array
+          items:
+            type: string
+
+    ServiceHealth:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN, UNKNOWN]
+        responseTime:
+          type: integer
+          description: Response time in milliseconds
+        lastChecked:
+          type: string
+          format: date-time
+        details:
+          type: object
+
+    RouteInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        uri:
+          type: string
+        predicates:
+          type: array
+          items:
+            type: string
+        filters:
+          type: array
+          items:
+            type: string
+        order:
+          type: integer
+
+    GatewayMetrics:
+      type: object
+      properties:
+        totalRequests:
+          type: integer
+          format: int64
+        activeConnections:
+          type: integer
+        requestsPerSecond:
+          type: number
+        averageResponseTime:
+          type: number
+          description: Average response time in milliseconds
+        circuitBreakerStatus:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [CLOSED, OPEN, HALF_OPEN]
+
+    FallbackResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        service:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        retryAfter:
+          type: integer
+          description: Suggested retry time in seconds

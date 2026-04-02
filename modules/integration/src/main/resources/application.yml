@@ -1,0 +1,194 @@
+spring:
+  application:
+    name: curanexus-gateway
+  main:
+    web-application-type: reactive
+  cloud:
+    gateway:
+      routes:
+        # Patient Module (A1)
+        - id: patient-service
+          uri: ${PATIENT_SERVICE_URL:http://localhost:8080}
+          predicates:
+            - Path=/api/v1/patients/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: patientCircuitBreaker
+                fallbackUri: forward:/fallback/patient
+            - AddRequestHeader=X-Gateway-Source, curanexus-gateway
+
+        # Care Encounter Module (A2)
+        - id: encounter-service
+          uri: ${ENCOUNTER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/encounters/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: encounterCircuitBreaker
+                fallbackUri: forward:/fallback/encounter
+            - AddRequestHeader=X-Gateway-Source, curanexus-gateway
+
+        # Journal Module (A3)
+        - id: journal-service
+          uri: ${JOURNAL_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/notes/**, /api/v1/diagnoses/**, /api/v1/procedures/**, /api/v1/observations/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: journalCircuitBreaker
+                fallbackUri: forward:/fallback/journal
+            - AddRequestHeader=X-Gateway-Source, curanexus-gateway
+
+        # Task Module (B1)
+        - id: task-service
+          uri: ${TASK_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/v1/tasks/**, /api/v1/reminders/**, /api/v1/delegations/**, /api/v1/watches/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: taskCircuitBreaker
+                fallbackUri: forward:/fallback/task
+            - AddRequestHeader=X-Gateway-Source, curanexus-gateway
+
+        # Authorization Module (C2)
+        - id: authorization-service
+          uri: ${AUTHORIZATION_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/users/**, /api/v1/roles/**, /api/v1/permissions/**, /api/v1/care-relations/**, /api/v1/access/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: authorizationCircuitBreaker
+                fallbackUri: forward:/fallback/authorization
+            - AddRequestHeader=X-Gateway-Source, curanexus-gateway
+
+        # FHIR Endpoints
+        - id: fhir-patient
+          uri: ${PATIENT_SERVICE_URL:http://localhost:8080}
+          predicates:
+            - Path=/fhir/Patient/**
+          filters:
+            - RewritePath=/fhir/Patient/(?<segment>.*), /api/v1/patients/${segment}
+            - AddRequestHeader=X-FHIR-Version, R4
+            - AddRequestHeader=X-Gateway-Source, curanexus-gateway
+
+        - id: fhir-encounter
+          uri: ${ENCOUNTER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/fhir/Encounter/**
+          filters:
+            - RewritePath=/fhir/Encounter/(?<segment>.*), /api/v1/encounters/${segment}
+            - AddRequestHeader=X-FHIR-Version, R4
+            - AddRequestHeader=X-Gateway-Source, curanexus-gateway
+
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowedHeaders: "*"
+
+server:
+  port: 8085
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, gateway, prometheus
+  endpoint:
+    gateway:
+      enabled: true
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+# Resilience4j configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      patientCircuitBreaker:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+      encounterCircuitBreaker:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+      journalCircuitBreaker:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+      taskCircuitBreaker:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+      authorizationCircuitBreaker:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+  timelimiter:
+    instances:
+      patientCircuitBreaker:
+        timeoutDuration: 10s
+      encounterCircuitBreaker:
+        timeoutDuration: 10s
+      journalCircuitBreaker:
+        timeoutDuration: 10s
+      taskCircuitBreaker:
+        timeoutDuration: 10s
+      authorizationCircuitBreaker:
+        timeoutDuration: 10s
+
+# Service discovery (for future use)
+curanexus:
+  gateway:
+    services:
+      patient:
+        url: ${PATIENT_SERVICE_URL:http://localhost:8080}
+        healthPath: /actuator/health
+      encounter:
+        url: ${ENCOUNTER_SERVICE_URL:http://localhost:8081}
+        healthPath: /actuator/health
+      journal:
+        url: ${JOURNAL_SERVICE_URL:http://localhost:8082}
+        healthPath: /actuator/health
+      task:
+        url: ${TASK_SERVICE_URL:http://localhost:8083}
+        healthPath: /actuator/health
+      authorization:
+        url: ${AUTHORIZATION_SERVICE_URL:http://localhost:8084}
+        healthPath: /actuator/health
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    reactor.netty: INFO
+    se.curanexus: DEBUG

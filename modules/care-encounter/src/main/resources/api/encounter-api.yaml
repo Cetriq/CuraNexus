@@ -1,0 +1,804 @@
+openapi: 3.0.3
+info:
+  title: Cura Nexus Care Encounter API
+  description: |
+    Care encounter and case management module (A2).
+
+    This is the central hub of the system. All care activities are connected to an encounter.
+
+    Handles:
+    - Care encounters (vårdkontakter)
+    - Encounter lifecycle and status
+    - Responsibility assignment (practitioner/unit)
+    - Participant management
+    - Reason for encounter
+  version: 1.0.0
+  contact:
+    name: Cura Nexus Team
+
+servers:
+  - url: /api/v1
+    description: API version 1
+
+tags:
+  - name: encounters
+    description: Care encounter management
+  - name: participants
+    description: Encounter participants (practitioners, patient)
+  - name: reasons
+    description: Reason for encounter
+
+paths:
+  /encounters:
+    get:
+      tags:
+        - encounters
+      summary: Search encounters
+      operationId: searchEncounters
+      parameters:
+        - name: patientId
+          in: query
+          description: Filter by patient UUID
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: Filter by status
+          schema:
+            $ref: '#/components/schemas/EncounterStatus'
+        - name: class
+          in: query
+          description: Filter by encounter class
+          schema:
+            $ref: '#/components/schemas/EncounterClass'
+        - name: responsibleUnitId
+          in: query
+          description: Filter by responsible unit
+          schema:
+            type: string
+            format: uuid
+        - name: fromDate
+          in: query
+          description: Start date range
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          description: End date range
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EncounterSearchResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    post:
+      tags:
+        - encounters
+      summary: Create a new encounter
+      operationId: createEncounter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEncounterRequest'
+      responses:
+        '201':
+          description: Encounter created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Encounter'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /encounters/{encounterId}:
+    parameters:
+      - $ref: '#/components/parameters/EncounterId'
+
+    get:
+      tags:
+        - encounters
+      summary: Get encounter by ID
+      operationId: getEncounter
+      responses:
+        '200':
+          description: Encounter details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Encounter'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - encounters
+      summary: Update encounter
+      operationId: updateEncounter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEncounterRequest'
+      responses:
+        '200':
+          description: Encounter updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Encounter'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /encounters/{encounterId}/status:
+    parameters:
+      - $ref: '#/components/parameters/EncounterId'
+
+    patch:
+      tags:
+        - encounters
+      summary: Update encounter status
+      operationId: updateEncounterStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStatusRequest'
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Encounter'
+        '400':
+          description: Invalid status transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /encounters/{encounterId}/participants:
+    parameters:
+      - $ref: '#/components/parameters/EncounterId'
+
+    get:
+      tags:
+        - participants
+      summary: Get encounter participants
+      operationId: getParticipants
+      responses:
+        '200':
+          description: Participants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Participant'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags:
+        - participants
+      summary: Add participant to encounter
+      operationId: addParticipant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddParticipantRequest'
+      responses:
+        '201':
+          description: Participant added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Participant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /encounters/{encounterId}/participants/{participantId}:
+    parameters:
+      - $ref: '#/components/parameters/EncounterId'
+      - $ref: '#/components/parameters/ParticipantId'
+
+    put:
+      tags:
+        - participants
+      summary: Update participant
+      operationId: updateParticipant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateParticipantRequest'
+      responses:
+        '200':
+          description: Participant updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Participant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - participants
+      summary: Remove participant
+      operationId: removeParticipant
+      responses:
+        '204':
+          description: Participant removed
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /encounters/{encounterId}/reasons:
+    parameters:
+      - $ref: '#/components/parameters/EncounterId'
+
+    get:
+      tags:
+        - reasons
+      summary: Get reasons for encounter
+      operationId: getReasons
+      responses:
+        '200':
+          description: Reasons
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EncounterReason'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags:
+        - reasons
+      summary: Add reason for encounter
+      operationId: addReason
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddReasonRequest'
+      responses:
+        '201':
+          description: Reason added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EncounterReason'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /encounters/{encounterId}/reasons/{reasonId}:
+    parameters:
+      - $ref: '#/components/parameters/EncounterId'
+      - $ref: '#/components/parameters/ReasonId'
+
+    delete:
+      tags:
+        - reasons
+      summary: Remove reason
+      operationId: removeReason
+      responses:
+        '204':
+          description: Reason removed
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /patients/{patientId}/encounters:
+    parameters:
+      - name: patientId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags:
+        - encounters
+      summary: Get patient encounters
+      operationId: getPatientEncounters
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/EncounterStatus'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Patient encounters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EncounterSearchResult'
+
+components:
+  parameters:
+    EncounterId:
+      name: encounterId
+      in: path
+      required: true
+      description: Encounter unique identifier (UUID)
+      schema:
+        type: string
+        format: uuid
+
+    ParticipantId:
+      name: participantId
+      in: path
+      required: true
+      description: Participant unique identifier (UUID)
+      schema:
+        type: string
+        format: uuid
+
+    ReasonId:
+      name: reasonId
+      in: path
+      required: true
+      description: Reason unique identifier (UUID)
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Encounter:
+      type: object
+      required:
+        - id
+        - patientId
+        - status
+        - class
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        patientId:
+          type: string
+          format: uuid
+          description: Reference to patient (A1 module)
+        status:
+          $ref: '#/components/schemas/EncounterStatus'
+        class:
+          $ref: '#/components/schemas/EncounterClass'
+        type:
+          $ref: '#/components/schemas/EncounterType'
+        priority:
+          $ref: '#/components/schemas/EncounterPriority'
+        serviceType:
+          type: string
+          maxLength: 100
+          description: Type of service (e.g., cardiology, orthopedics)
+        responsibleUnitId:
+          type: string
+          format: uuid
+          description: Reference to organizational unit
+        responsiblePractitionerId:
+          type: string
+          format: uuid
+          description: Reference to responsible practitioner
+        plannedStartTime:
+          type: string
+          format: date-time
+        plannedEndTime:
+          type: string
+          format: date-time
+        actualStartTime:
+          type: string
+          format: date-time
+        actualEndTime:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+
+    CreateEncounterRequest:
+      type: object
+      required:
+        - patientId
+        - class
+      properties:
+        patientId:
+          type: string
+          format: uuid
+        class:
+          $ref: '#/components/schemas/EncounterClass'
+        type:
+          $ref: '#/components/schemas/EncounterType'
+        priority:
+          $ref: '#/components/schemas/EncounterPriority'
+        serviceType:
+          type: string
+          maxLength: 100
+        responsibleUnitId:
+          type: string
+          format: uuid
+        responsiblePractitionerId:
+          type: string
+          format: uuid
+        plannedStartTime:
+          type: string
+          format: date-time
+        plannedEndTime:
+          type: string
+          format: date-time
+
+    UpdateEncounterRequest:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/EncounterType'
+        priority:
+          $ref: '#/components/schemas/EncounterPriority'
+        serviceType:
+          type: string
+          maxLength: 100
+        responsibleUnitId:
+          type: string
+          format: uuid
+        responsiblePractitionerId:
+          type: string
+          format: uuid
+        plannedStartTime:
+          type: string
+          format: date-time
+        plannedEndTime:
+          type: string
+          format: date-time
+        actualStartTime:
+          type: string
+          format: date-time
+        actualEndTime:
+          type: string
+          format: date-time
+
+    UpdateStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          $ref: '#/components/schemas/EncounterStatus'
+        reason:
+          type: string
+          maxLength: 500
+          description: Reason for status change
+
+    EncounterSearchResult:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/EncounterSummary'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    EncounterSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/EncounterStatus'
+        class:
+          $ref: '#/components/schemas/EncounterClass'
+        type:
+          $ref: '#/components/schemas/EncounterType'
+        serviceType:
+          type: string
+        plannedStartTime:
+          type: string
+          format: date-time
+        actualStartTime:
+          type: string
+          format: date-time
+
+    EncounterStatus:
+      type: string
+      enum:
+        - PLANNED
+        - ARRIVED
+        - TRIAGED
+        - IN_PROGRESS
+        - ON_HOLD
+        - FINISHED
+        - CANCELLED
+      description: |
+        Encounter lifecycle status:
+        - PLANNED: Scheduled but not started
+        - ARRIVED: Patient has arrived
+        - TRIAGED: Initial assessment done (links to A4)
+        - IN_PROGRESS: Active care ongoing
+        - ON_HOLD: Temporarily paused
+        - FINISHED: Encounter completed
+        - CANCELLED: Encounter cancelled
+
+    EncounterClass:
+      type: string
+      enum:
+        - INPATIENT
+        - OUTPATIENT
+        - EMERGENCY
+        - HOME_VISIT
+        - VIRTUAL
+      description: |
+        Classification of encounter:
+        - INPATIENT: Hospital admission (slutenvård)
+        - OUTPATIENT: Clinic visit (öppenvård)
+        - EMERGENCY: Emergency visit (akut)
+        - HOME_VISIT: Home visit (hembesök)
+        - VIRTUAL: Telemedicine/video (digitalt)
+
+    EncounterType:
+      type: string
+      enum:
+        - INITIAL
+        - FOLLOW_UP
+        - EMERGENCY
+        - ROUTINE
+        - CONSULTATION
+      description: Type of encounter
+
+    EncounterPriority:
+      type: string
+      enum:
+        - IMMEDIATE
+        - URGENT
+        - NORMAL
+        - LOW
+      description: Priority level
+
+    Participant:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        type:
+          $ref: '#/components/schemas/ParticipantType'
+        practitionerId:
+          type: string
+          format: uuid
+          description: Reference to practitioner (if type is PRACTITIONER)
+        role:
+          $ref: '#/components/schemas/ParticipantRole'
+        period:
+          $ref: '#/components/schemas/Period'
+
+    AddParticipantRequest:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          $ref: '#/components/schemas/ParticipantType'
+        practitionerId:
+          type: string
+          format: uuid
+        role:
+          $ref: '#/components/schemas/ParticipantRole'
+        periodStart:
+          type: string
+          format: date-time
+        periodEnd:
+          type: string
+          format: date-time
+
+    UpdateParticipantRequest:
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/ParticipantRole'
+        periodStart:
+          type: string
+          format: date-time
+        periodEnd:
+          type: string
+          format: date-time
+
+    ParticipantType:
+      type: string
+      enum:
+        - PRACTITIONER
+        - PATIENT
+        - RELATED_PERSON
+
+    ParticipantRole:
+      type: string
+      enum:
+        - PRIMARY
+        - SECONDARY
+        - CONSULTANT
+        - ATTENDING
+        - REFERRER
+
+    Period:
+      type: object
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+
+    EncounterReason:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        type:
+          $ref: '#/components/schemas/ReasonType'
+        code:
+          type: string
+          maxLength: 20
+          description: ICD-10 or other code
+        codeSystem:
+          type: string
+          maxLength: 50
+          description: Code system (e.g., ICD-10-SE)
+        displayText:
+          type: string
+          maxLength: 500
+          description: Human-readable reason
+        isPrimary:
+          type: boolean
+          default: false
+
+    AddReasonRequest:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          $ref: '#/components/schemas/ReasonType'
+        code:
+          type: string
+          maxLength: 20
+        codeSystem:
+          type: string
+          maxLength: 50
+        displayText:
+          type: string
+          maxLength: 500
+        isPrimary:
+          type: boolean
+          default: false
+
+    ReasonType:
+      type: string
+      enum:
+        - CHIEF_COMPLAINT
+        - DIAGNOSIS
+        - REFERRAL_REASON
+        - ADMISSION_REASON
+
+    ErrorResponse:
+      type: object
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldError'
+
+    FieldError:
+      type: object
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

@@ -1,0 +1,921 @@
+openapi: 3.0.3
+info:
+  title: Cura Nexus Task API
+  description: |
+    B1 - Task and Workflow Module (Uppgifts- och arbetsflödesmodul)
+
+    Execution layer that binds decisions to actions:
+    - Tasks: Individual work items assigned to users
+    - Reminders: Time-based notifications
+    - Delegations: Transfer of responsibility
+    - Watches: Monitoring of entities for changes
+  version: 1.0.0
+  contact:
+    name: Cura Nexus Team
+
+servers:
+  - url: http://localhost:8083
+    description: Local development
+
+tags:
+  - name: Tasks
+    description: Task management operations
+  - name: Reminders
+    description: Reminder management
+  - name: Delegations
+    description: Delegation of tasks
+  - name: Watches
+    description: Entity monitoring
+
+paths:
+  /api/v1/tasks:
+    post:
+      tags: [Tasks]
+      summary: Create a new task
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          description: Invalid request
+    get:
+      tags: [Tasks]
+      summary: List tasks
+      operationId: listTasks
+      parameters:
+        - name: assigneeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/TaskStatus'
+        - name: priority
+          in: query
+          schema:
+            $ref: '#/components/schemas/TaskPriority'
+        - name: encounterId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: patientId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskResponse'
+
+  /api/v1/tasks/{taskId}:
+    get:
+      tags: [Tasks]
+      summary: Get task by ID
+      operationId: getTask
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '404':
+          description: Task not found
+    put:
+      tags: [Tasks]
+      summary: Update task
+      operationId: updateTask
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+      responses:
+        '200':
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+
+  /api/v1/tasks/{taskId}/assign:
+    post:
+      tags: [Tasks]
+      summary: Assign task to user
+      operationId: assignTask
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignTaskRequest'
+      responses:
+        '200':
+          description: Task assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+
+  /api/v1/tasks/{taskId}/start:
+    post:
+      tags: [Tasks]
+      summary: Start working on task
+      operationId: startTask
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Task started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+
+  /api/v1/tasks/{taskId}/complete:
+    post:
+      tags: [Tasks]
+      summary: Complete task
+      operationId: completeTask
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteTaskRequest'
+      responses:
+        '200':
+          description: Task completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+
+  /api/v1/tasks/{taskId}/cancel:
+    post:
+      tags: [Tasks]
+      summary: Cancel task
+      operationId: cancelTask
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelTaskRequest'
+      responses:
+        '200':
+          description: Task cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+
+  /api/v1/users/{userId}/tasks:
+    get:
+      tags: [Tasks]
+      summary: Get tasks assigned to user
+      operationId: getUserTasks
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/TaskStatus'
+        - name: includeCompleted
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: User's tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskResponse'
+
+  /api/v1/encounters/{encounterId}/tasks:
+    get:
+      tags: [Tasks]
+      summary: Get tasks for encounter
+      operationId: getEncounterTasks
+      parameters:
+        - name: encounterId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Encounter tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskResponse'
+
+  /api/v1/patients/{patientId}/tasks:
+    get:
+      tags: [Tasks]
+      summary: Get tasks for patient
+      operationId: getPatientTasks
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Patient tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskResponse'
+
+  # Reminders
+  /api/v1/reminders:
+    post:
+      tags: [Reminders]
+      summary: Create a reminder
+      operationId: createReminder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReminderRequest'
+      responses:
+        '201':
+          description: Reminder created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderResponse'
+
+  /api/v1/reminders/{reminderId}:
+    get:
+      tags: [Reminders]
+      summary: Get reminder
+      operationId: getReminder
+      parameters:
+        - name: reminderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Reminder details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderResponse'
+    delete:
+      tags: [Reminders]
+      summary: Delete reminder
+      operationId: deleteReminder
+      parameters:
+        - name: reminderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Reminder deleted
+
+  /api/v1/reminders/{reminderId}/acknowledge:
+    post:
+      tags: [Reminders]
+      summary: Acknowledge reminder
+      operationId: acknowledgeReminder
+      parameters:
+        - name: reminderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Reminder acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderResponse'
+
+  /api/v1/reminders/{reminderId}/snooze:
+    post:
+      tags: [Reminders]
+      summary: Snooze reminder
+      operationId: snoozeReminder
+      parameters:
+        - name: reminderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SnoozeReminderRequest'
+      responses:
+        '200':
+          description: Reminder snoozed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderResponse'
+
+  /api/v1/users/{userId}/reminders:
+    get:
+      tags: [Reminders]
+      summary: Get user's reminders
+      operationId: getUserReminders
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ReminderStatus'
+      responses:
+        '200':
+          description: User's reminders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReminderResponse'
+
+  # Delegations
+  /api/v1/delegations:
+    post:
+      tags: [Delegations]
+      summary: Create delegation
+      operationId: createDelegation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDelegationRequest'
+      responses:
+        '201':
+          description: Delegation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DelegationResponse'
+
+  /api/v1/delegations/{delegationId}:
+    get:
+      tags: [Delegations]
+      summary: Get delegation
+      operationId: getDelegation
+      parameters:
+        - name: delegationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Delegation details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DelegationResponse'
+
+  /api/v1/delegations/{delegationId}/revoke:
+    post:
+      tags: [Delegations]
+      summary: Revoke delegation
+      operationId: revokeDelegation
+      parameters:
+        - name: delegationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Delegation revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DelegationResponse'
+
+  # Watches
+  /api/v1/watches:
+    post:
+      tags: [Watches]
+      summary: Create watch
+      operationId: createWatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWatchRequest'
+      responses:
+        '201':
+          description: Watch created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchResponse'
+
+  /api/v1/watches/{watchId}:
+    get:
+      tags: [Watches]
+      summary: Get watch
+      operationId: getWatch
+      parameters:
+        - name: watchId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Watch details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchResponse'
+    delete:
+      tags: [Watches]
+      summary: Delete watch
+      operationId: deleteWatch
+      parameters:
+        - name: watchId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Watch deleted
+
+  /api/v1/users/{userId}/watches:
+    get:
+      tags: [Watches]
+      summary: Get user's watches
+      operationId: getUserWatches
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User's watches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WatchResponse'
+
+components:
+  schemas:
+    TaskStatus:
+      type: string
+      enum: [PENDING, ASSIGNED, IN_PROGRESS, COMPLETED, CANCELLED, BLOCKED]
+
+    TaskPriority:
+      type: string
+      enum: [LOW, NORMAL, HIGH, URGENT]
+
+    TaskCategory:
+      type: string
+      enum: [CLINICAL, ADMINISTRATIVE, DOCUMENTATION, FOLLOW_UP, REFERRAL, LAB, IMAGING, MEDICATION]
+
+    ReminderStatus:
+      type: string
+      enum: [PENDING, TRIGGERED, ACKNOWLEDGED, SNOOZED, CANCELLED]
+
+    DelegationStatus:
+      type: string
+      enum: [ACTIVE, EXPIRED, REVOKED]
+
+    WatchType:
+      type: string
+      enum: [PATIENT, ENCOUNTER, LAB_RESULT, REFERRAL, TASK]
+
+    CreateTaskRequest:
+      type: object
+      required:
+        - title
+        - category
+        - priority
+        - createdById
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        category:
+          $ref: '#/components/schemas/TaskCategory'
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        patientId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        assigneeId:
+          type: string
+          format: uuid
+        createdById:
+          type: string
+          format: uuid
+        dueAt:
+          type: string
+          format: date-time
+        sourceType:
+          type: string
+          description: Type of entity that triggered this task
+        sourceId:
+          type: string
+          format: uuid
+          description: ID of entity that triggered this task
+
+    UpdateTaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        dueAt:
+          type: string
+          format: date-time
+
+    AssignTaskRequest:
+      type: object
+      required:
+        - assigneeId
+      properties:
+        assigneeId:
+          type: string
+          format: uuid
+        note:
+          type: string
+
+    CompleteTaskRequest:
+      type: object
+      properties:
+        completionNote:
+          type: string
+          maxLength: 1000
+        outcome:
+          type: string
+          maxLength: 200
+
+    CancelTaskRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+
+    TaskResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          $ref: '#/components/schemas/TaskCategory'
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        patientId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        assigneeId:
+          type: string
+          format: uuid
+        createdById:
+          type: string
+          format: uuid
+        sourceType:
+          type: string
+        sourceId:
+          type: string
+          format: uuid
+        dueAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        completionNote:
+          type: string
+        outcome:
+          type: string
+        cancelReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateReminderRequest:
+      type: object
+      required:
+        - userId
+        - message
+        - remindAt
+      properties:
+        userId:
+          type: string
+          format: uuid
+        message:
+          type: string
+          maxLength: 500
+        remindAt:
+          type: string
+          format: date-time
+        patientId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        taskId:
+          type: string
+          format: uuid
+        recurring:
+          type: boolean
+          default: false
+        recurrencePattern:
+          type: string
+          description: Cron-like pattern for recurring reminders
+
+    SnoozeReminderRequest:
+      type: object
+      required:
+        - snoozeUntil
+      properties:
+        snoozeUntil:
+          type: string
+          format: date-time
+
+    ReminderResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        message:
+          type: string
+        status:
+          $ref: '#/components/schemas/ReminderStatus'
+        remindAt:
+          type: string
+          format: date-time
+        patientId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        taskId:
+          type: string
+          format: uuid
+        recurring:
+          type: boolean
+        recurrencePattern:
+          type: string
+        acknowledgedAt:
+          type: string
+          format: date-time
+        snoozedUntil:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateDelegationRequest:
+      type: object
+      required:
+        - fromUserId
+        - toUserId
+        - validFrom
+        - validUntil
+      properties:
+        fromUserId:
+          type: string
+          format: uuid
+        toUserId:
+          type: string
+          format: uuid
+        validFrom:
+          type: string
+          format: date-time
+        validUntil:
+          type: string
+          format: date-time
+        scope:
+          type: string
+          description: Scope of delegation (e.g., all tasks, specific category)
+        note:
+          type: string
+          maxLength: 500
+
+    DelegationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        fromUserId:
+          type: string
+          format: uuid
+        toUserId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/DelegationStatus'
+        validFrom:
+          type: string
+          format: date-time
+        validUntil:
+          type: string
+          format: date-time
+        scope:
+          type: string
+        note:
+          type: string
+        revokedAt:
+          type: string
+          format: date-time
+        revokedById:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateWatchRequest:
+      type: object
+      required:
+        - userId
+        - watchType
+        - targetId
+      properties:
+        userId:
+          type: string
+          format: uuid
+        watchType:
+          $ref: '#/components/schemas/WatchType'
+        targetId:
+          type: string
+          format: uuid
+        notifyOnChange:
+          type: boolean
+          default: true
+        note:
+          type: string
+          maxLength: 500
+
+    WatchResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        watchType:
+          $ref: '#/components/schemas/WatchType'
+        targetId:
+          type: string
+          format: uuid
+        notifyOnChange:
+          type: boolean
+        note:
+          type: string
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        lastNotifiedAt:
+          type: string
+          format: date-time

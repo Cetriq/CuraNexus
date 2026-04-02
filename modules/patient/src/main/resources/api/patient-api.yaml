@@ -1,0 +1,881 @@
+openapi: 3.0.3
+info:
+  title: Cura Nexus Patient API
+  description: |
+    Patient identity and contact management module (A1).
+
+    Handles:
+    - Patient identity (personnummer as primary identifier)
+    - Contact information
+    - Related persons (next of kin, guardians)
+    - Protected identity status
+    - Basic consent management
+  version: 1.0.0
+  contact:
+    name: Cura Nexus Team
+
+servers:
+  - url: /api/v1
+    description: API version 1
+
+tags:
+  - name: patients
+    description: Patient identity management
+  - name: contacts
+    description: Patient contact information
+  - name: related-persons
+    description: Next of kin and guardians
+  - name: consents
+    description: Basic consent management
+
+paths:
+  /patients:
+    get:
+      tags:
+        - patients
+      summary: Search patients
+      operationId: searchPatients
+      parameters:
+        - name: personalIdentityNumber
+          in: query
+          description: Swedish personal identity number (personnummer)
+          schema:
+            type: string
+            pattern: '^\d{12}$'
+        - name: name
+          in: query
+          description: Search by name (partial match)
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientSearchResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    post:
+      tags:
+        - patients
+      summary: Register a new patient
+      operationId: createPatient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePatientRequest'
+      responses:
+        '201':
+          description: Patient created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Patient with this personnummer already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /patients/{patientId}:
+    parameters:
+      - $ref: '#/components/parameters/PatientId'
+
+    get:
+      tags:
+        - patients
+      summary: Get patient by ID
+      operationId: getPatient
+      responses:
+        '200':
+          description: Patient details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - patients
+      summary: Update patient
+      operationId: updatePatient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePatientRequest'
+      responses:
+        '200':
+          description: Patient updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /patients/{patientId}/contacts:
+    parameters:
+      - $ref: '#/components/parameters/PatientId'
+
+    get:
+      tags:
+        - contacts
+      summary: Get patient contact information
+      operationId: getPatientContacts
+      responses:
+        '200':
+          description: Contact information
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContactInfo'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags:
+        - contacts
+      summary: Add contact information
+      operationId: addPatientContact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContactRequest'
+      responses:
+        '201':
+          description: Contact added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /patients/{patientId}/contacts/{contactId}:
+    parameters:
+      - $ref: '#/components/parameters/PatientId'
+      - $ref: '#/components/parameters/ContactId'
+
+    put:
+      tags:
+        - contacts
+      summary: Update contact information
+      operationId: updatePatientContact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateContactRequest'
+      responses:
+        '200':
+          description: Contact updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - contacts
+      summary: Remove contact information
+      operationId: deletePatientContact
+      responses:
+        '204':
+          description: Contact removed
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /patients/{patientId}/related-persons:
+    parameters:
+      - $ref: '#/components/parameters/PatientId'
+
+    get:
+      tags:
+        - related-persons
+      summary: Get related persons (next of kin, guardians)
+      operationId: getRelatedPersons
+      responses:
+        '200':
+          description: Related persons
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RelatedPerson'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags:
+        - related-persons
+      summary: Add related person
+      operationId: addRelatedPerson
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRelatedPersonRequest'
+      responses:
+        '201':
+          description: Related person added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelatedPerson'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /patients/{patientId}/related-persons/{relatedPersonId}:
+    parameters:
+      - $ref: '#/components/parameters/PatientId'
+      - $ref: '#/components/parameters/RelatedPersonId'
+
+    put:
+      tags:
+        - related-persons
+      summary: Update related person
+      operationId: updateRelatedPerson
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRelatedPersonRequest'
+      responses:
+        '200':
+          description: Related person updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelatedPerson'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - related-persons
+      summary: Remove related person
+      operationId: deleteRelatedPerson
+      responses:
+        '204':
+          description: Related person removed
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /patients/{patientId}/consents:
+    parameters:
+      - $ref: '#/components/parameters/PatientId'
+
+    get:
+      tags:
+        - consents
+      summary: Get patient consents
+      operationId: getPatientConsents
+      responses:
+        '200':
+          description: Patient consents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Consent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags:
+        - consents
+      summary: Register consent
+      operationId: registerConsent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConsentRequest'
+      responses:
+        '201':
+          description: Consent registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Consent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /patients/{patientId}/consents/{consentId}:
+    parameters:
+      - $ref: '#/components/parameters/PatientId'
+      - $ref: '#/components/parameters/ConsentId'
+
+    get:
+      tags:
+        - consents
+      summary: Get specific consent
+      operationId: getConsent
+      responses:
+        '200':
+          description: Consent details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Consent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - consents
+      summary: Revoke consent
+      operationId: revokeConsent
+      responses:
+        '204':
+          description: Consent revoked
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    PatientId:
+      name: patientId
+      in: path
+      required: true
+      description: Patient unique identifier (UUID)
+      schema:
+        type: string
+        format: uuid
+
+    ContactId:
+      name: contactId
+      in: path
+      required: true
+      description: Contact unique identifier (UUID)
+      schema:
+        type: string
+        format: uuid
+
+    RelatedPersonId:
+      name: relatedPersonId
+      in: path
+      required: true
+      description: Related person unique identifier (UUID)
+      schema:
+        type: string
+        format: uuid
+
+    ConsentId:
+      name: consentId
+      in: path
+      required: true
+      description: Consent unique identifier (UUID)
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Patient:
+      type: object
+      required:
+        - id
+        - personalIdentityNumber
+        - givenName
+        - familyName
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        personalIdentityNumber:
+          type: string
+          pattern: '^\d{12}$'
+          description: Swedish personal identity number (personnummer), 12 digits
+          example: "199001011234"
+        givenName:
+          type: string
+          maxLength: 100
+          example: "Anna"
+        familyName:
+          type: string
+          maxLength: 100
+          example: "Andersson"
+        middleName:
+          type: string
+          maxLength: 100
+        dateOfBirth:
+          type: string
+          format: date
+          description: Derived from personnummer
+        gender:
+          $ref: '#/components/schemas/Gender'
+        protectedIdentity:
+          type: boolean
+          default: false
+          description: Indicates if patient has protected identity (skyddade personuppgifter)
+        deceased:
+          type: boolean
+          default: false
+        deceasedDate:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+
+    CreatePatientRequest:
+      type: object
+      required:
+        - personalIdentityNumber
+        - givenName
+        - familyName
+      properties:
+        personalIdentityNumber:
+          type: string
+          pattern: '^\d{12}$'
+          description: Swedish personal identity number (personnummer), 12 digits
+        givenName:
+          type: string
+          maxLength: 100
+        familyName:
+          type: string
+          maxLength: 100
+        middleName:
+          type: string
+          maxLength: 100
+        protectedIdentity:
+          type: boolean
+          default: false
+
+    UpdatePatientRequest:
+      type: object
+      properties:
+        givenName:
+          type: string
+          maxLength: 100
+        familyName:
+          type: string
+          maxLength: 100
+        middleName:
+          type: string
+          maxLength: 100
+        protectedIdentity:
+          type: boolean
+        deceased:
+          type: boolean
+        deceasedDate:
+          type: string
+          format: date
+
+    PatientSearchResult:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/PatientSummary'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    PatientSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        personalIdentityNumber:
+          type: string
+          description: Masked if protected identity
+        givenName:
+          type: string
+        familyName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        protectedIdentity:
+          type: boolean
+
+    ContactInfo:
+      type: object
+      required:
+        - id
+        - type
+        - value
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        type:
+          $ref: '#/components/schemas/ContactType'
+        value:
+          type: string
+          maxLength: 255
+          description: Phone number, email, or address
+        use:
+          $ref: '#/components/schemas/ContactUse'
+        primary:
+          type: boolean
+          default: false
+        validFrom:
+          type: string
+          format: date
+        validTo:
+          type: string
+          format: date
+
+    CreateContactRequest:
+      type: object
+      required:
+        - type
+        - value
+      properties:
+        type:
+          $ref: '#/components/schemas/ContactType'
+        value:
+          type: string
+          maxLength: 255
+        use:
+          $ref: '#/components/schemas/ContactUse'
+        primary:
+          type: boolean
+          default: false
+        validFrom:
+          type: string
+          format: date
+        validTo:
+          type: string
+          format: date
+
+    UpdateContactRequest:
+      type: object
+      properties:
+        value:
+          type: string
+          maxLength: 255
+        use:
+          $ref: '#/components/schemas/ContactUse'
+        primary:
+          type: boolean
+        validFrom:
+          type: string
+          format: date
+        validTo:
+          type: string
+          format: date
+
+    ContactType:
+      type: string
+      enum:
+        - PHONE
+        - MOBILE
+        - EMAIL
+        - ADDRESS
+
+    ContactUse:
+      type: string
+      enum:
+        - HOME
+        - WORK
+        - TEMPORARY
+
+    RelatedPerson:
+      type: object
+      required:
+        - id
+        - relationship
+        - givenName
+        - familyName
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        relationship:
+          $ref: '#/components/schemas/RelationshipType'
+        personalIdentityNumber:
+          type: string
+          pattern: '^\d{12}$'
+        givenName:
+          type: string
+          maxLength: 100
+        familyName:
+          type: string
+          maxLength: 100
+        phone:
+          type: string
+          maxLength: 20
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        isEmergencyContact:
+          type: boolean
+          default: false
+        isLegalGuardian:
+          type: boolean
+          default: false
+        validFrom:
+          type: string
+          format: date
+        validTo:
+          type: string
+          format: date
+
+    CreateRelatedPersonRequest:
+      type: object
+      required:
+        - relationship
+        - givenName
+        - familyName
+      properties:
+        relationship:
+          $ref: '#/components/schemas/RelationshipType'
+        personalIdentityNumber:
+          type: string
+          pattern: '^\d{12}$'
+        givenName:
+          type: string
+          maxLength: 100
+        familyName:
+          type: string
+          maxLength: 100
+        phone:
+          type: string
+          maxLength: 20
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        isEmergencyContact:
+          type: boolean
+          default: false
+        isLegalGuardian:
+          type: boolean
+          default: false
+        validFrom:
+          type: string
+          format: date
+        validTo:
+          type: string
+          format: date
+
+    UpdateRelatedPersonRequest:
+      type: object
+      properties:
+        relationship:
+          $ref: '#/components/schemas/RelationshipType'
+        givenName:
+          type: string
+          maxLength: 100
+        familyName:
+          type: string
+          maxLength: 100
+        phone:
+          type: string
+          maxLength: 20
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        isEmergencyContact:
+          type: boolean
+        isLegalGuardian:
+          type: boolean
+        validFrom:
+          type: string
+          format: date
+        validTo:
+          type: string
+          format: date
+
+    RelationshipType:
+      type: string
+      enum:
+        - SPOUSE
+        - PARENT
+        - CHILD
+        - SIBLING
+        - GUARDIAN
+        - OTHER
+
+    Consent:
+      type: object
+      required:
+        - id
+        - type
+        - status
+        - givenAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        type:
+          $ref: '#/components/schemas/ConsentType'
+        status:
+          $ref: '#/components/schemas/ConsentStatus'
+        givenAt:
+          type: string
+          format: date-time
+        givenBy:
+          type: string
+          description: Who gave consent (patient or guardian ID)
+        revokedAt:
+          type: string
+          format: date-time
+        validFrom:
+          type: string
+          format: date
+        validTo:
+          type: string
+          format: date
+        scope:
+          type: string
+          description: What the consent covers
+
+    CreateConsentRequest:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          $ref: '#/components/schemas/ConsentType'
+        givenBy:
+          type: string
+        validFrom:
+          type: string
+          format: date
+        validTo:
+          type: string
+          format: date
+        scope:
+          type: string
+
+    ConsentType:
+      type: string
+      enum:
+        - DATA_SHARING
+        - TREATMENT
+        - RESEARCH
+        - COMMUNICATION
+
+    ConsentStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - REVOKED
+        - EXPIRED
+
+    Gender:
+      type: string
+      enum:
+        - MALE
+        - FEMALE
+        - OTHER
+        - UNKNOWN
+
+    ErrorResponse:
+      type: object
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldError'
+
+    FieldError:
+      type: object
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

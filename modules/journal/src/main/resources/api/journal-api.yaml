@@ -1,0 +1,976 @@
+openapi: 3.0.3
+info:
+  title: Cura Nexus Journal API
+  description: |
+    Medical documentation module (A3).
+
+    Journal = output from the care flow. All documentation is linked to an encounter.
+
+    Handles:
+    - Clinical notes (anteckningar)
+    - Diagnoses (ICD-10)
+    - Procedures/actions (KVÅ)
+    - Observations (vitals, measurements)
+    - Document signing
+  version: 1.0.0
+  contact:
+    name: Cura Nexus Team
+
+servers:
+  - url: /api/v1
+    description: API version 1
+
+tags:
+  - name: notes
+    description: Clinical notes management
+  - name: diagnoses
+    description: Diagnosis management (ICD-10)
+  - name: procedures
+    description: Procedure/action management (KVÅ)
+  - name: observations
+    description: Clinical observations (vitals, measurements)
+
+paths:
+  /encounters/{encounterId}/notes:
+    parameters:
+      - $ref: '#/components/parameters/EncounterId'
+
+    get:
+      tags:
+        - notes
+      summary: Get clinical notes for encounter
+      operationId: getEncounterNotes
+      responses:
+        '200':
+          description: Clinical notes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ClinicalNote'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags:
+        - notes
+      summary: Create clinical note
+      operationId: createNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNoteRequest'
+      responses:
+        '201':
+          description: Note created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicalNote'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /notes/{noteId}:
+    parameters:
+      - $ref: '#/components/parameters/NoteId'
+
+    get:
+      tags:
+        - notes
+      summary: Get clinical note by ID
+      operationId: getNote
+      responses:
+        '200':
+          description: Clinical note
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicalNote'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - notes
+      summary: Update clinical note
+      operationId: updateNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNoteRequest'
+      responses:
+        '200':
+          description: Note updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicalNote'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /notes/{noteId}/sign:
+    parameters:
+      - $ref: '#/components/parameters/NoteId'
+
+    post:
+      tags:
+        - notes
+      summary: Sign clinical note
+      operationId: signNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignRequest'
+      responses:
+        '200':
+          description: Note signed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicalNote'
+        '400':
+          description: Note cannot be signed (already signed or draft)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /encounters/{encounterId}/diagnoses:
+    parameters:
+      - $ref: '#/components/parameters/EncounterId'
+
+    get:
+      tags:
+        - diagnoses
+      summary: Get diagnoses for encounter
+      operationId: getEncounterDiagnoses
+      responses:
+        '200':
+          description: Diagnoses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Diagnosis'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags:
+        - diagnoses
+      summary: Add diagnosis
+      operationId: addDiagnosis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDiagnosisRequest'
+      responses:
+        '201':
+          description: Diagnosis added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Diagnosis'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /diagnoses/{diagnosisId}:
+    parameters:
+      - $ref: '#/components/parameters/DiagnosisId'
+
+    put:
+      tags:
+        - diagnoses
+      summary: Update diagnosis
+      operationId: updateDiagnosis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDiagnosisRequest'
+      responses:
+        '200':
+          description: Diagnosis updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Diagnosis'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - diagnoses
+      summary: Remove diagnosis
+      operationId: removeDiagnosis
+      responses:
+        '204':
+          description: Diagnosis removed
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /encounters/{encounterId}/procedures:
+    parameters:
+      - $ref: '#/components/parameters/EncounterId'
+
+    get:
+      tags:
+        - procedures
+      summary: Get procedures for encounter
+      operationId: getEncounterProcedures
+      responses:
+        '200':
+          description: Procedures
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Procedure'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags:
+        - procedures
+      summary: Add procedure
+      operationId: addProcedure
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProcedureRequest'
+      responses:
+        '201':
+          description: Procedure added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Procedure'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /procedures/{procedureId}:
+    parameters:
+      - $ref: '#/components/parameters/ProcedureId'
+
+    put:
+      tags:
+        - procedures
+      summary: Update procedure
+      operationId: updateProcedure
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProcedureRequest'
+      responses:
+        '200':
+          description: Procedure updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Procedure'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - procedures
+      summary: Remove procedure
+      operationId: removeProcedure
+      responses:
+        '204':
+          description: Procedure removed
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /encounters/{encounterId}/observations:
+    parameters:
+      - $ref: '#/components/parameters/EncounterId'
+
+    get:
+      tags:
+        - observations
+      summary: Get observations for encounter
+      operationId: getEncounterObservations
+      parameters:
+        - name: category
+          in: query
+          schema:
+            $ref: '#/components/schemas/ObservationCategory'
+      responses:
+        '200':
+          description: Observations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Observation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags:
+        - observations
+      summary: Add observation
+      operationId: addObservation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateObservationRequest'
+      responses:
+        '201':
+          description: Observation added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Observation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /observations/{observationId}:
+    parameters:
+      - $ref: '#/components/parameters/ObservationId'
+
+    delete:
+      tags:
+        - observations
+      summary: Remove observation
+      operationId: removeObservation
+      responses:
+        '204':
+          description: Observation removed
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /patients/{patientId}/journal:
+    parameters:
+      - $ref: '#/components/parameters/PatientId'
+
+    get:
+      tags:
+        - notes
+      summary: Get patient journal timeline
+      operationId: getPatientJournal
+      parameters:
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Patient journal entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JournalTimelineResult'
+
+components:
+  parameters:
+    EncounterId:
+      name: encounterId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    PatientId:
+      name: patientId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    NoteId:
+      name: noteId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    DiagnosisId:
+      name: diagnosisId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ProcedureId:
+      name: procedureId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    ObservationId:
+      name: observationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    ClinicalNote:
+      type: object
+      required:
+        - id
+        - encounterId
+        - patientId
+        - type
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/NoteType'
+        status:
+          $ref: '#/components/schemas/NoteStatus'
+        title:
+          type: string
+          maxLength: 200
+        content:
+          type: string
+          description: Note content (structured or free text)
+        authorId:
+          type: string
+          format: uuid
+        authorName:
+          type: string
+        signedAt:
+          type: string
+          format: date-time
+        signedById:
+          type: string
+          format: uuid
+        signedByName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateNoteRequest:
+      type: object
+      required:
+        - patientId
+        - type
+        - content
+        - authorId
+      properties:
+        patientId:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/NoteType'
+        title:
+          type: string
+          maxLength: 200
+        content:
+          type: string
+        authorId:
+          type: string
+          format: uuid
+        authorName:
+          type: string
+
+    UpdateNoteRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        content:
+          type: string
+
+    SignRequest:
+      type: object
+      required:
+        - signedById
+      properties:
+        signedById:
+          type: string
+          format: uuid
+        signedByName:
+          type: string
+
+    NoteType:
+      type: string
+      enum:
+        - ADMISSION
+        - PROGRESS
+        - CONSULTATION
+        - DISCHARGE
+        - PROCEDURE
+        - NURSING
+        - OTHER
+
+    NoteStatus:
+      type: string
+      enum:
+        - DRAFT
+        - FINAL
+        - AMENDED
+        - CANCELLED
+
+    Diagnosis:
+      type: object
+      required:
+        - id
+        - encounterId
+        - code
+        - codeSystem
+      properties:
+        id:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          maxLength: 20
+          description: ICD-10 code
+        codeSystem:
+          type: string
+          default: ICD-10-SE
+        displayText:
+          type: string
+          maxLength: 500
+        type:
+          $ref: '#/components/schemas/DiagnosisType'
+        rank:
+          type: integer
+          description: Order/priority (1 = primary)
+        onsetDate:
+          type: string
+          format: date
+        resolvedDate:
+          type: string
+          format: date
+        recordedAt:
+          type: string
+          format: date-time
+        recordedById:
+          type: string
+          format: uuid
+
+    CreateDiagnosisRequest:
+      type: object
+      required:
+        - patientId
+        - code
+      properties:
+        patientId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          maxLength: 20
+        codeSystem:
+          type: string
+          default: ICD-10-SE
+        displayText:
+          type: string
+          maxLength: 500
+        type:
+          $ref: '#/components/schemas/DiagnosisType'
+        rank:
+          type: integer
+        onsetDate:
+          type: string
+          format: date
+        recordedById:
+          type: string
+          format: uuid
+
+    UpdateDiagnosisRequest:
+      type: object
+      properties:
+        displayText:
+          type: string
+          maxLength: 500
+        type:
+          $ref: '#/components/schemas/DiagnosisType'
+        rank:
+          type: integer
+        resolvedDate:
+          type: string
+          format: date
+
+    DiagnosisType:
+      type: string
+      enum:
+        - PRINCIPAL
+        - SECONDARY
+        - COMPLICATION
+        - DIFFERENTIAL
+
+    Procedure:
+      type: object
+      required:
+        - id
+        - encounterId
+        - code
+        - codeSystem
+      properties:
+        id:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          maxLength: 20
+          description: KVÅ code
+        codeSystem:
+          type: string
+          default: KVA
+        displayText:
+          type: string
+          maxLength: 500
+        status:
+          $ref: '#/components/schemas/ProcedureStatus'
+        performedAt:
+          type: string
+          format: date-time
+        performedById:
+          type: string
+          format: uuid
+        performedByName:
+          type: string
+        note:
+          type: string
+          maxLength: 2000
+        recordedAt:
+          type: string
+          format: date-time
+
+    CreateProcedureRequest:
+      type: object
+      required:
+        - patientId
+        - code
+      properties:
+        patientId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          maxLength: 20
+        codeSystem:
+          type: string
+          default: KVA
+        displayText:
+          type: string
+          maxLength: 500
+        status:
+          $ref: '#/components/schemas/ProcedureStatus'
+        performedAt:
+          type: string
+          format: date-time
+        performedById:
+          type: string
+          format: uuid
+        performedByName:
+          type: string
+        note:
+          type: string
+          maxLength: 2000
+
+    UpdateProcedureRequest:
+      type: object
+      properties:
+        displayText:
+          type: string
+          maxLength: 500
+        status:
+          $ref: '#/components/schemas/ProcedureStatus'
+        performedAt:
+          type: string
+          format: date-time
+        note:
+          type: string
+          maxLength: 2000
+
+    ProcedureStatus:
+      type: string
+      enum:
+        - PLANNED
+        - IN_PROGRESS
+        - COMPLETED
+        - CANCELLED
+
+    Observation:
+      type: object
+      required:
+        - id
+        - encounterId
+        - category
+        - code
+      properties:
+        id:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        category:
+          $ref: '#/components/schemas/ObservationCategory'
+        code:
+          type: string
+          maxLength: 50
+          description: LOINC or local code
+        codeSystem:
+          type: string
+        displayText:
+          type: string
+          maxLength: 200
+        valueQuantity:
+          type: number
+          format: double
+        valueUnit:
+          type: string
+          maxLength: 20
+        valueString:
+          type: string
+          maxLength: 500
+        interpretation:
+          $ref: '#/components/schemas/ObservationInterpretation'
+        referenceRangeLow:
+          type: number
+          format: double
+        referenceRangeHigh:
+          type: number
+          format: double
+        effectiveAt:
+          type: string
+          format: date-time
+        recordedAt:
+          type: string
+          format: date-time
+        recordedById:
+          type: string
+          format: uuid
+
+    CreateObservationRequest:
+      type: object
+      required:
+        - patientId
+        - category
+        - code
+      properties:
+        patientId:
+          type: string
+          format: uuid
+        category:
+          $ref: '#/components/schemas/ObservationCategory'
+        code:
+          type: string
+          maxLength: 50
+        codeSystem:
+          type: string
+        displayText:
+          type: string
+          maxLength: 200
+        valueQuantity:
+          type: number
+          format: double
+        valueUnit:
+          type: string
+          maxLength: 20
+        valueString:
+          type: string
+          maxLength: 500
+        interpretation:
+          $ref: '#/components/schemas/ObservationInterpretation'
+        referenceRangeLow:
+          type: number
+          format: double
+        referenceRangeHigh:
+          type: number
+          format: double
+        effectiveAt:
+          type: string
+          format: date-time
+        recordedById:
+          type: string
+          format: uuid
+
+    ObservationCategory:
+      type: string
+      enum:
+        - VITAL_SIGNS
+        - LABORATORY
+        - IMAGING
+        - ASSESSMENT
+        - SOCIAL_HISTORY
+
+    ObservationInterpretation:
+      type: string
+      enum:
+        - NORMAL
+        - LOW
+        - HIGH
+        - CRITICAL_LOW
+        - CRITICAL_HIGH
+        - ABNORMAL
+
+    JournalTimelineResult:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/JournalEntry'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    JournalEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [NOTE, DIAGNOSIS, PROCEDURE, OBSERVATION]
+        encounterId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        summary:
+          type: string
+        authorName:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldError'
+
+    FieldError:
+      type: object
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

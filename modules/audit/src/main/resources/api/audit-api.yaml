@@ -1,0 +1,843 @@
+openapi: 3.0.3
+info:
+  title: Cura Nexus Audit API
+  description: |
+    Audit logging and compliance tracking for Cura Nexus healthcare platform.
+
+    This module provides:
+    - Access logging (who accessed what, when)
+    - Change logging (what was modified)
+    - Security events (login, logout, failed attempts)
+    - Compliance reporting for PDL (Patientdatalagen)
+
+    ## Swedish Healthcare Compliance
+
+    According to PDL (Patientdatalagen), all access to patient data must be logged with:
+    - Who accessed (user identity)
+    - What was accessed (resource type and ID)
+    - When it was accessed (timestamp)
+    - Why it was accessed (care relation context)
+
+  version: 1.0.0
+  contact:
+    name: Cura Nexus Team
+
+servers:
+  - url: http://localhost:8086
+    description: Local development
+
+tags:
+  - name: Access Logs
+    description: Patient data access logging
+  - name: Change Logs
+    description: Data modification tracking
+  - name: Security Events
+    description: Authentication and authorization events
+  - name: Reports
+    description: Compliance and audit reports
+  - name: Audit Events
+    description: General audit event management
+
+paths:
+  /api/v1/audit/events:
+    post:
+      tags:
+        - Audit Events
+      summary: Record audit event
+      description: Records a new audit event (typically called by other services)
+      operationId: recordEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAuditEventRequest'
+      responses:
+        '201':
+          description: Event recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEventResponse'
+        '400':
+          description: Invalid request
+
+    get:
+      tags:
+        - Audit Events
+      summary: Search audit events
+      description: Search audit events with various filters
+      operationId: searchEvents
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: resourceType
+          in: query
+          schema:
+            $ref: '#/components/schemas/ResourceType'
+        - name: resourceId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: eventType
+          in: query
+          schema:
+            $ref: '#/components/schemas/AuditEventType'
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEventPage'
+
+  /api/v1/audit/events/{eventId}:
+    get:
+      tags:
+        - Audit Events
+      summary: Get audit event by ID
+      operationId: getEvent
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Audit event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEventResponse'
+        '404':
+          description: Event not found
+
+  /api/v1/audit/access-logs:
+    get:
+      tags:
+        - Access Logs
+      summary: Get access logs
+      description: Get logs of patient data access
+      operationId: getAccessLogs
+      parameters:
+        - name: patientId
+          in: query
+          description: Filter by patient
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: query
+          description: Filter by user who accessed
+          schema:
+            type: string
+            format: uuid
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Access logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessLogPage'
+
+  /api/v1/audit/access-logs/patient/{patientId}:
+    get:
+      tags:
+        - Access Logs
+      summary: Get patient access history
+      description: Get all access to a specific patient's data (PDL requirement)
+      operationId: getPatientAccessHistory
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Patient access history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccessLogResponse'
+
+  /api/v1/audit/change-logs:
+    get:
+      tags:
+        - Change Logs
+      summary: Get change logs
+      description: Get logs of data modifications
+      operationId: getChangeLogs
+      parameters:
+        - name: resourceType
+          in: query
+          schema:
+            $ref: '#/components/schemas/ResourceType'
+        - name: resourceId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: changeType
+          in: query
+          schema:
+            $ref: '#/components/schemas/ChangeType'
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Change logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangeLogPage'
+
+  /api/v1/audit/change-logs/resource/{resourceType}/{resourceId}:
+    get:
+      tags:
+        - Change Logs
+      summary: Get resource change history
+      description: Get complete change history for a specific resource
+      operationId: getResourceHistory
+      parameters:
+        - name: resourceType
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ResourceType'
+        - name: resourceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Resource change history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChangeLogResponse'
+
+  /api/v1/audit/security-events:
+    get:
+      tags:
+        - Security Events
+      summary: Get security events
+      description: Get authentication and authorization events
+      operationId: getSecurityEvents
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: eventType
+          in: query
+          schema:
+            $ref: '#/components/schemas/SecurityEventType'
+        - name: success
+          in: query
+          schema:
+            type: boolean
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Security events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityEventPage'
+
+  /api/v1/audit/reports/user-activity/{userId}:
+    get:
+      tags:
+        - Reports
+      summary: Get user activity report
+      description: Generate activity report for a specific user
+      operationId: getUserActivityReport
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: fromDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: User activity report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserActivityReport'
+
+  /api/v1/audit/reports/patient-access/{patientId}:
+    get:
+      tags:
+        - Reports
+      summary: Get patient access report
+      description: Generate PDL-compliant access report for a patient
+      operationId: getPatientAccessReport
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: fromDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Patient access report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientAccessReport'
+
+  /api/v1/audit/reports/system-summary:
+    get:
+      tags:
+        - Reports
+      summary: Get system audit summary
+      description: Generate summary of all audit activity
+      operationId: getSystemSummary
+      parameters:
+        - name: fromDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: System audit summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemAuditSummary'
+
+components:
+  schemas:
+    AuditEventType:
+      type: string
+      enum:
+        - ACCESS
+        - CREATE
+        - READ
+        - UPDATE
+        - DELETE
+        - SIGN
+        - EXPORT
+        - PRINT
+        - LOGIN
+        - LOGOUT
+        - LOGIN_FAILED
+        - PERMISSION_DENIED
+        - EMERGENCY_ACCESS
+
+    ResourceType:
+      type: string
+      enum:
+        - PATIENT
+        - ENCOUNTER
+        - NOTE
+        - DIAGNOSIS
+        - PROCEDURE
+        - OBSERVATION
+        - TASK
+        - USER
+        - ROLE
+
+    ChangeType:
+      type: string
+      enum:
+        - CREATE
+        - UPDATE
+        - DELETE
+        - STATUS_CHANGE
+        - SIGN
+
+    SecurityEventType:
+      type: string
+      enum:
+        - LOGIN
+        - LOGOUT
+        - LOGIN_FAILED
+        - PASSWORD_CHANGE
+        - PERMISSION_DENIED
+        - ROLE_ASSIGNED
+        - ROLE_REMOVED
+        - EMERGENCY_ACCESS
+        - CONSENT_OVERRIDE
+
+    CreateAuditEventRequest:
+      type: object
+      required:
+        - eventType
+        - userId
+        - resourceType
+      properties:
+        eventType:
+          $ref: '#/components/schemas/AuditEventType'
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        resourceType:
+          $ref: '#/components/schemas/ResourceType'
+        resourceId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        action:
+          type: string
+          maxLength: 100
+        details:
+          type: object
+        ipAddress:
+          type: string
+        userAgent:
+          type: string
+        careRelationId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          maxLength: 500
+
+    AuditEventResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventType:
+          $ref: '#/components/schemas/AuditEventType'
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        resourceType:
+          $ref: '#/components/schemas/ResourceType'
+        resourceId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        action:
+          type: string
+        details:
+          type: object
+        ipAddress:
+          type: string
+        userAgent:
+          type: string
+        careRelationId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    AuditEventPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEventResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    AccessLogResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        patientId:
+          type: string
+          format: uuid
+        resourceType:
+          $ref: '#/components/schemas/ResourceType'
+        resourceId:
+          type: string
+          format: uuid
+        accessType:
+          type: string
+          enum: [READ, WRITE, EXPORT, PRINT]
+        careRelationId:
+          type: string
+          format: uuid
+        careRelationType:
+          type: string
+        reason:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    AccessLogPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccessLogResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    ChangeLogResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        resourceType:
+          $ref: '#/components/schemas/ResourceType'
+        resourceId:
+          type: string
+          format: uuid
+        changeType:
+          $ref: '#/components/schemas/ChangeType'
+        fieldName:
+          type: string
+        oldValue:
+          type: string
+        newValue:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    ChangeLogPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChangeLogResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    SecurityEventResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        eventType:
+          $ref: '#/components/schemas/SecurityEventType'
+        success:
+          type: boolean
+        ipAddress:
+          type: string
+        userAgent:
+          type: string
+        details:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+
+    SecurityEventPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/SecurityEventResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    UserActivityReport:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        fromDate:
+          type: string
+          format: date
+        toDate:
+          type: string
+          format: date
+        totalEvents:
+          type: integer
+        accessCount:
+          type: integer
+        modificationCount:
+          type: integer
+        patientsAccessed:
+          type: integer
+        loginCount:
+          type: integer
+        eventsByType:
+          type: object
+          additionalProperties:
+            type: integer
+        eventsByDay:
+          type: object
+          additionalProperties:
+            type: integer
+
+    PatientAccessReport:
+      type: object
+      properties:
+        patientId:
+          type: string
+          format: uuid
+        fromDate:
+          type: string
+          format: date
+        toDate:
+          type: string
+          format: date
+        totalAccesses:
+          type: integer
+        uniqueUsers:
+          type: integer
+        accessByUser:
+          type: array
+          items:
+            type: object
+            properties:
+              userId:
+                type: string
+                format: uuid
+              username:
+                type: string
+              accessCount:
+                type: integer
+              careRelationType:
+                type: string
+              lastAccess:
+                type: string
+                format: date-time
+        accessByResourceType:
+          type: object
+          additionalProperties:
+            type: integer
+
+    SystemAuditSummary:
+      type: object
+      properties:
+        fromDate:
+          type: string
+          format: date
+        toDate:
+          type: string
+          format: date
+        totalEvents:
+          type: integer
+          format: int64
+        totalUsers:
+          type: integer
+        totalPatientsAccessed:
+          type: integer
+        eventsByType:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int64
+        securityEventsSummary:
+          type: object
+          properties:
+            totalLogins:
+              type: integer
+            failedLogins:
+              type: integer
+            permissionDenied:
+              type: integer
+            emergencyAccess:
+              type: integer

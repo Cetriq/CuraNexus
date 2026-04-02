@@ -1,0 +1,835 @@
+openapi: 3.0.3
+info:
+  title: Cura Nexus Authorization API
+  description: |
+    C2 - Authorization and Role Management Module (Behörighets- och rollmodul)
+
+    Implements RBAC (Role-Based Access Control) + ABAC (Attribute-Based Access Control):
+    - Users: System users with credentials and profile
+    - Roles: Named collections of permissions (e.g., DOCTOR, NURSE, ADMIN)
+    - Permissions: Fine-grained access rights (e.g., READ_PATIENT, WRITE_NOTE)
+    - Care Relations: Context-based access (patient-provider relationship)
+    - Access Policies: ABAC rules for dynamic authorization
+  version: 1.0.0
+  contact:
+    name: Cura Nexus Team
+
+servers:
+  - url: http://localhost:8084
+    description: Local development
+
+tags:
+  - name: Users
+    description: User management
+  - name: Roles
+    description: Role management
+  - name: Permissions
+    description: Permission management
+  - name: Care Relations
+    description: Patient-provider care relationships
+  - name: Access Control
+    description: Authorization checks
+
+paths:
+  /api/v1/users:
+    post:
+      tags: [Users]
+      summary: Create a new user
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+    get:
+      tags: [Users]
+      summary: List users
+      operationId: listUsers
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+
+  /api/v1/users/{userId}:
+    get:
+      tags: [Users]
+      summary: Get user by ID
+      operationId: getUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '404':
+          description: User not found
+    put:
+      tags: [Users]
+      summary: Update user
+      operationId: updateUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+
+  /api/v1/users/{userId}/roles:
+    get:
+      tags: [Users]
+      summary: Get user's roles
+      operationId: getUserRoles
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User's roles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoleResponse'
+    post:
+      tags: [Users]
+      summary: Assign role to user
+      operationId: assignRole
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignRoleRequest'
+      responses:
+        '200':
+          description: Role assigned
+
+  /api/v1/users/{userId}/roles/{roleId}:
+    delete:
+      tags: [Users]
+      summary: Remove role from user
+      operationId: removeRole
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Role removed
+
+  /api/v1/users/{userId}/deactivate:
+    post:
+      tags: [Users]
+      summary: Deactivate user
+      operationId: deactivateUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User deactivated
+
+  /api/v1/users/{userId}/activate:
+    post:
+      tags: [Users]
+      summary: Activate user
+      operationId: activateUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User activated
+
+  # Roles
+  /api/v1/roles:
+    post:
+      tags: [Roles]
+      summary: Create a new role
+      operationId: createRole
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoleRequest'
+      responses:
+        '201':
+          description: Role created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleResponse'
+    get:
+      tags: [Roles]
+      summary: List roles
+      operationId: listRoles
+      responses:
+        '200':
+          description: List of roles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoleResponse'
+
+  /api/v1/roles/{roleId}:
+    get:
+      tags: [Roles]
+      summary: Get role by ID
+      operationId: getRole
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Role details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleResponse'
+    put:
+      tags: [Roles]
+      summary: Update role
+      operationId: updateRole
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoleRequest'
+      responses:
+        '200':
+          description: Role updated
+    delete:
+      tags: [Roles]
+      summary: Delete role
+      operationId: deleteRole
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Role deleted
+
+  /api/v1/roles/{roleId}/permissions:
+    get:
+      tags: [Roles]
+      summary: Get role's permissions
+      operationId: getRolePermissions
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Role's permissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PermissionResponse'
+    post:
+      tags: [Roles]
+      summary: Add permission to role
+      operationId: addPermission
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddPermissionRequest'
+      responses:
+        '200':
+          description: Permission added
+
+  /api/v1/roles/{roleId}/permissions/{permissionId}:
+    delete:
+      tags: [Roles]
+      summary: Remove permission from role
+      operationId: removePermission
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: permissionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Permission removed
+
+  # Permissions
+  /api/v1/permissions:
+    get:
+      tags: [Permissions]
+      summary: List all permissions
+      operationId: listPermissions
+      parameters:
+        - name: resource
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of permissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PermissionResponse'
+
+  # Care Relations
+  /api/v1/care-relations:
+    post:
+      tags: [Care Relations]
+      summary: Create care relation
+      operationId: createCareRelation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCareRelationRequest'
+      responses:
+        '201':
+          description: Care relation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CareRelationResponse'
+
+  /api/v1/care-relations/{careRelationId}:
+    get:
+      tags: [Care Relations]
+      summary: Get care relation
+      operationId: getCareRelation
+      parameters:
+        - name: careRelationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Care relation details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CareRelationResponse'
+
+  /api/v1/care-relations/{careRelationId}/end:
+    post:
+      tags: [Care Relations]
+      summary: End care relation
+      operationId: endCareRelation
+      parameters:
+        - name: careRelationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Care relation ended
+
+  /api/v1/patients/{patientId}/care-relations:
+    get:
+      tags: [Care Relations]
+      summary: Get patient's care relations
+      operationId: getPatientCareRelations
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: active
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Patient's care relations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CareRelationResponse'
+
+  /api/v1/users/{userId}/care-relations:
+    get:
+      tags: [Care Relations]
+      summary: Get user's care relations
+      operationId: getUserCareRelations
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: active
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: User's care relations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CareRelationResponse'
+
+  # Access Control
+  /api/v1/access/check:
+    post:
+      tags: [Access Control]
+      summary: Check access permission
+      operationId: checkAccess
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessCheckRequest'
+      responses:
+        '200':
+          description: Access check result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessCheckResponse'
+
+  /api/v1/users/{userId}/permissions:
+    get:
+      tags: [Access Control]
+      summary: Get user's effective permissions
+      operationId: getUserEffectivePermissions
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User's effective permissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PermissionResponse'
+
+components:
+  schemas:
+    UserType:
+      type: string
+      enum: [INTERNAL, EXTERNAL]
+
+    CareRelationType:
+      type: string
+      enum: [PRIMARY_CARE, SPECIALIST, NURSE, THERAPIST, EMERGENCY]
+
+    ResourceType:
+      type: string
+      enum: [PATIENT, ENCOUNTER, NOTE, DIAGNOSIS, PROCEDURE, OBSERVATION, TASK, USER, ROLE]
+
+    ActionType:
+      type: string
+      enum: [CREATE, READ, UPDATE, DELETE, SIGN, APPROVE, DELEGATE]
+
+    CreateUserRequest:
+      type: object
+      required:
+        - username
+        - email
+        - firstName
+        - lastName
+        - userType
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+          maxLength: 100
+        lastName:
+          type: string
+          maxLength: 100
+        title:
+          type: string
+          maxLength: 100
+        department:
+          type: string
+          maxLength: 100
+        userType:
+          $ref: '#/components/schemas/UserType'
+        hsaId:
+          type: string
+          description: Swedish HSA-ID for healthcare professionals
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        title:
+          type: string
+        department:
+          type: string
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        fullName:
+          type: string
+        title:
+          type: string
+        department:
+          type: string
+        userType:
+          $ref: '#/components/schemas/UserType'
+        hsaId:
+          type: string
+        active:
+          type: boolean
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoleResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AssignRoleRequest:
+      type: object
+      required:
+        - roleId
+      properties:
+        roleId:
+          type: string
+          format: uuid
+        validFrom:
+          type: string
+          format: date-time
+        validUntil:
+          type: string
+          format: date-time
+
+    CreateRoleRequest:
+      type: object
+      required:
+        - name
+        - code
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        code:
+          type: string
+          maxLength: 50
+          description: Unique role code (e.g., DOCTOR, NURSE, ADMIN)
+        description:
+          type: string
+          maxLength: 500
+
+    UpdateRoleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+
+    RoleResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        code:
+          type: string
+        description:
+          type: string
+        systemRole:
+          type: boolean
+        permissionCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    AddPermissionRequest:
+      type: object
+      required:
+        - permissionId
+      properties:
+        permissionId:
+          type: string
+          format: uuid
+
+    PermissionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        resource:
+          $ref: '#/components/schemas/ResourceType'
+        action:
+          $ref: '#/components/schemas/ActionType'
+
+    CreateCareRelationRequest:
+      type: object
+      required:
+        - userId
+        - patientId
+        - relationType
+      properties:
+        userId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        relationType:
+          $ref: '#/components/schemas/CareRelationType'
+        validFrom:
+          type: string
+          format: date-time
+        validUntil:
+          type: string
+          format: date-time
+        reason:
+          type: string
+          maxLength: 500
+
+    CareRelationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        userName:
+          type: string
+        patientId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        relationType:
+          $ref: '#/components/schemas/CareRelationType'
+        validFrom:
+          type: string
+          format: date-time
+        validUntil:
+          type: string
+          format: date-time
+        active:
+          type: boolean
+        reason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+
+    AccessCheckRequest:
+      type: object
+      required:
+        - userId
+        - resource
+        - action
+      properties:
+        userId:
+          type: string
+          format: uuid
+        resource:
+          $ref: '#/components/schemas/ResourceType'
+        resourceId:
+          type: string
+          format: uuid
+        action:
+          $ref: '#/components/schemas/ActionType'
+        patientId:
+          type: string
+          format: uuid
+          description: For patient-context checks
+
+    AccessCheckResponse:
+      type: object
+      properties:
+        allowed:
+          type: boolean
+        reason:
+          type: string
+        requiredPermissions:
+          type: array
+          items:
+            type: string
+        matchedPermissions:
+          type: array
+          items:
+            type: string
+        careRelationRequired:
+          type: boolean
+        careRelationFound:
+          type: boolean

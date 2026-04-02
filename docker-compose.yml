@@ -1,0 +1,283 @@
+version: '3.8'
+
+services:
+  # =============================================================================
+  # PostgreSQL Database
+  # =============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: curanexus-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+    ports:
+      - "5441:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - curanexus-network
+
+  # =============================================================================
+  # A1 - Patient Module
+  # =============================================================================
+  patient:
+    image: curanexus/patient:latest
+    container_name: curanexus-patient
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: patient
+    environment:
+      SPRING_DATASOURCE_URL: ${CURANEXUS_DB_URL:-jdbc:postgresql://postgres:5432/curanexus}
+      SPRING_DATASOURCE_USERNAME: ${CURANEXUS_DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${CURANEXUS_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - curanexus-network
+
+  # =============================================================================
+  # A2 - Care Encounter Module
+  # =============================================================================
+  care-encounter:
+    image: curanexus/care-encounter:latest
+    container_name: curanexus-care-encounter
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: care-encounter
+    environment:
+      SPRING_DATASOURCE_URL: ${CURANEXUS_DB_URL:-jdbc:postgresql://postgres:5432/curanexus}
+      SPRING_DATASOURCE_USERNAME: ${CURANEXUS_DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${CURANEXUS_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8081
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - curanexus-network
+
+  # =============================================================================
+  # A3 - Journal Module
+  # =============================================================================
+  journal:
+    image: curanexus/journal:latest
+    container_name: curanexus-journal
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: journal
+    environment:
+      SPRING_DATASOURCE_URL: ${CURANEXUS_DB_URL:-jdbc:postgresql://postgres:5432/curanexus}
+      SPRING_DATASOURCE_USERNAME: ${CURANEXUS_DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${CURANEXUS_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8082
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - curanexus-network
+
+  # =============================================================================
+  # B1 - Task Module
+  # =============================================================================
+  task:
+    image: curanexus/task:latest
+    container_name: curanexus-task
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: task
+    environment:
+      SPRING_DATASOURCE_URL: ${CURANEXUS_DB_URL:-jdbc:postgresql://postgres:5432/curanexus}
+      SPRING_DATASOURCE_USERNAME: ${CURANEXUS_DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${CURANEXUS_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8083
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - curanexus-network
+
+  # =============================================================================
+  # C2 - Authorization Module
+  # =============================================================================
+  authorization:
+    image: curanexus/authorization:latest
+    container_name: curanexus-authorization
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: authorization
+    environment:
+      SPRING_DATASOURCE_URL: ${CURANEXUS_DB_URL:-jdbc:postgresql://postgres:5432/curanexus}
+      SPRING_DATASOURCE_USERNAME: ${CURANEXUS_DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${CURANEXUS_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8084
+    ports:
+      - "8084:8084"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - curanexus-network
+
+  # =============================================================================
+  # C3 - Audit Module
+  # =============================================================================
+  audit:
+    image: curanexus/audit:latest
+    container_name: curanexus-audit
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: audit
+    environment:
+      SPRING_DATASOURCE_URL: ${AUDIT_DB_URL:-jdbc:postgresql://postgres:5432/curanexus_audit}
+      SPRING_DATASOURCE_USERNAME: ${AUDIT_DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${AUDIT_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8086
+    ports:
+      - "8086:8086"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - curanexus-network
+
+  # =============================================================================
+  # A4 - Triage Module
+  # =============================================================================
+  triage:
+    image: curanexus/triage:latest
+    container_name: curanexus-triage
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: triage
+    environment:
+      SPRING_DATASOURCE_URL: ${TRIAGE_DB_URL:-jdbc:postgresql://postgres:5432/curanexus_triage}
+      SPRING_DATASOURCE_USERNAME: ${TRIAGE_DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${TRIAGE_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8087
+    ports:
+      - "8087:8087"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - curanexus-network
+
+  # =============================================================================
+  # E1 - Integration/Gateway Module
+  # =============================================================================
+  integration:
+    image: curanexus/integration:latest
+    container_name: curanexus-integration
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: integration
+    environment:
+      SERVER_PORT: 8085
+      PATIENT_SERVICE_URL: ${PATIENT_SERVICE_URL:-http://patient:8080}
+      ENCOUNTER_SERVICE_URL: ${ENCOUNTER_SERVICE_URL:-http://care-encounter:8081}
+      JOURNAL_SERVICE_URL: ${JOURNAL_SERVICE_URL:-http://journal:8082}
+      TASK_SERVICE_URL: ${TASK_SERVICE_URL:-http://task:8083}
+      AUTHORIZATION_SERVICE_URL: ${AUTHORIZATION_SERVICE_URL:-http://authorization:8084}
+    ports:
+      - "8085:8085"
+    depends_on:
+      - patient
+      - care-encounter
+      - journal
+      - task
+      - authorization
+      - audit
+      - triage
+    networks:
+      - curanexus-network
+
+  # =============================================================================
+  # Development Tools
+  # =============================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: curanexus-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@curanexus.se}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - curanexus-network
+    profiles:
+      - dev
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  curanexus-network:
+    driver: bridge
+    name: curanexus-network
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    name: curanexus-postgres-data
+  pgadmin_data:
+    name: curanexus-pgadmin-data

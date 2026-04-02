@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: curanexus-audit
+  datasource:
+    url: jdbc:postgresql://localhost:5432/curanexus_audit
+    username: ${DB_USERNAME:curanexus}
+    password: ${DB_PASSWORD:curanexus}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+server:
+  port: 8086
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+
+# Audit configuration
+curanexus:
+  audit:
+    retention-days: 365
+    async-processing: true
+    include-request-body: false
+    include-response-body: false
+    sensitive-fields:
+      - password
+      - personnummer
+      - creditCard
+    excluded-paths:
+      - /actuator/**
+      - /health
+      - /info
+
+logging:
+  level:
+    se.curanexus.audit: DEBUG
+    org.hibernate.SQL: INFO

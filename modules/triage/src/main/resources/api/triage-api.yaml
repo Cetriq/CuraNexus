@@ -1,0 +1,948 @@
+openapi: 3.0.3
+info:
+  title: Cura Nexus - Triage API
+  description: |
+    A4 Triage and Assessment Module API.
+
+    Provides symptom-based triage, prioritization, care level decisions,
+    and clinical decision support for healthcare encounters.
+
+    Based on Swedish triage guidelines (RETTS - Rapid Emergency Triage and Treatment System).
+  version: 1.0.0
+  contact:
+    name: Cura Nexus Team
+
+servers:
+  - url: http://localhost:8087
+    description: Local development server
+
+tags:
+  - name: Triage Assessments
+    description: Triage assessment operations
+  - name: Symptoms
+    description: Symptom recording and management
+  - name: Vital Signs
+    description: Vital signs recording during triage
+  - name: Decision Support
+    description: Clinical decision support
+  - name: Protocols
+    description: Triage protocol management
+
+paths:
+  /api/v1/triage/assessments:
+    post:
+      tags:
+        - Triage Assessments
+      summary: Start a new triage assessment
+      operationId: createAssessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAssessmentRequest'
+      responses:
+        '201':
+          description: Assessment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriageAssessmentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    get:
+      tags:
+        - Triage Assessments
+      summary: Search triage assessments
+      operationId: searchAssessments
+      parameters:
+        - name: patientId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: encounterId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: priority
+          in: query
+          schema:
+            $ref: '#/components/schemas/TriagePriority'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/AssessmentStatus'
+        - name: fromDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: toDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedAssessmentResponse'
+
+  /api/v1/triage/assessments/{assessmentId}:
+    get:
+      tags:
+        - Triage Assessments
+      summary: Get triage assessment by ID
+      operationId: getAssessment
+      parameters:
+        - $ref: '#/components/parameters/AssessmentIdParam'
+      responses:
+        '200':
+          description: Assessment found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriageAssessmentResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - Triage Assessments
+      summary: Update triage assessment
+      operationId: updateAssessment
+      parameters:
+        - $ref: '#/components/parameters/AssessmentIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAssessmentRequest'
+      responses:
+        '200':
+          description: Assessment updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriageAssessmentResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/triage/assessments/{assessmentId}/complete:
+    post:
+      tags:
+        - Triage Assessments
+      summary: Complete triage assessment
+      operationId: completeAssessment
+      parameters:
+        - $ref: '#/components/parameters/AssessmentIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteAssessmentRequest'
+      responses:
+        '200':
+          description: Assessment completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriageAssessmentResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/triage/assessments/{assessmentId}/escalate:
+    post:
+      tags:
+        - Triage Assessments
+      summary: Escalate priority
+      operationId: escalatePriority
+      parameters:
+        - $ref: '#/components/parameters/AssessmentIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EscalationRequest'
+      responses:
+        '200':
+          description: Priority escalated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriageAssessmentResponse'
+
+  /api/v1/triage/assessments/{assessmentId}/symptoms:
+    post:
+      tags:
+        - Symptoms
+      summary: Add symptom to assessment
+      operationId: addSymptom
+      parameters:
+        - $ref: '#/components/parameters/AssessmentIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SymptomRequest'
+      responses:
+        '201':
+          description: Symptom added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SymptomResponse'
+
+    get:
+      tags:
+        - Symptoms
+      summary: Get symptoms for assessment
+      operationId: getSymptoms
+      parameters:
+        - $ref: '#/components/parameters/AssessmentIdParam'
+      responses:
+        '200':
+          description: Symptoms list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SymptomResponse'
+
+  /api/v1/triage/assessments/{assessmentId}/vital-signs:
+    post:
+      tags:
+        - Vital Signs
+      summary: Record vital signs
+      operationId: recordVitalSigns
+      parameters:
+        - $ref: '#/components/parameters/AssessmentIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VitalSignsRequest'
+      responses:
+        '201':
+          description: Vital signs recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VitalSignsResponse'
+
+    get:
+      tags:
+        - Vital Signs
+      summary: Get vital signs for assessment
+      operationId: getVitalSigns
+      parameters:
+        - $ref: '#/components/parameters/AssessmentIdParam'
+      responses:
+        '200':
+          description: Vital signs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VitalSignsResponse'
+
+  /api/v1/triage/decision-support:
+    post:
+      tags:
+        - Decision Support
+      summary: Get decision support recommendation
+      operationId: getDecisionSupport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecisionSupportRequest'
+      responses:
+        '200':
+          description: Decision support recommendation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionSupportResponse'
+
+  /api/v1/triage/protocols:
+    get:
+      tags:
+        - Protocols
+      summary: List available triage protocols
+      operationId: listProtocols
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: active
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Protocol list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TriageProtocolResponse'
+
+  /api/v1/triage/protocols/{protocolId}:
+    get:
+      tags:
+        - Protocols
+      summary: Get triage protocol details
+      operationId: getProtocol
+      parameters:
+        - name: protocolId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Protocol details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriageProtocolResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/triage/queue:
+    get:
+      tags:
+        - Triage Assessments
+      summary: Get current triage queue
+      operationId: getTriageQueue
+      parameters:
+        - name: locationId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Triage queue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriageQueueResponse'
+
+components:
+  parameters:
+    AssessmentIdParam:
+      name: assessmentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 0
+    SizeParam:
+      name: size
+      in: query
+      schema:
+        type: integer
+        default: 20
+
+  schemas:
+    CreateAssessmentRequest:
+      type: object
+      required:
+        - patientId
+        - encounterId
+        - triageNurseId
+        - chiefComplaint
+      properties:
+        patientId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        triageNurseId:
+          type: string
+          format: uuid
+        chiefComplaint:
+          type: string
+          maxLength: 500
+        arrivalMode:
+          $ref: '#/components/schemas/ArrivalMode'
+        locationId:
+          type: string
+          format: uuid
+
+    UpdateAssessmentRequest:
+      type: object
+      properties:
+        chiefComplaint:
+          type: string
+          maxLength: 500
+        notes:
+          type: string
+        priority:
+          $ref: '#/components/schemas/TriagePriority'
+        careLevel:
+          $ref: '#/components/schemas/CareLevel'
+
+    CompleteAssessmentRequest:
+      type: object
+      required:
+        - priority
+        - careLevel
+        - disposition
+      properties:
+        priority:
+          $ref: '#/components/schemas/TriagePriority'
+        careLevel:
+          $ref: '#/components/schemas/CareLevel'
+        disposition:
+          $ref: '#/components/schemas/Disposition'
+        notes:
+          type: string
+        recommendedProtocolId:
+          type: string
+          format: uuid
+
+    EscalationRequest:
+      type: object
+      required:
+        - newPriority
+        - reason
+      properties:
+        newPriority:
+          $ref: '#/components/schemas/TriagePriority'
+        reason:
+          type: string
+          maxLength: 500
+
+    SymptomRequest:
+      type: object
+      required:
+        - symptomCode
+        - description
+      properties:
+        symptomCode:
+          type: string
+          maxLength: 20
+          description: Standardized symptom code (e.g., RETTS ESS code)
+        description:
+          type: string
+          maxLength: 500
+        onset:
+          type: string
+          format: date-time
+        duration:
+          type: string
+          description: Duration in ISO 8601 format (e.g., PT2H for 2 hours)
+        severity:
+          $ref: '#/components/schemas/Severity'
+        bodyLocation:
+          type: string
+          maxLength: 100
+        isChiefComplaint:
+          type: boolean
+          default: false
+
+    VitalSignsRequest:
+      type: object
+      properties:
+        bloodPressureSystolic:
+          type: integer
+          minimum: 0
+          maximum: 300
+        bloodPressureDiastolic:
+          type: integer
+          minimum: 0
+          maximum: 200
+        heartRate:
+          type: integer
+          minimum: 0
+          maximum: 300
+        respiratoryRate:
+          type: integer
+          minimum: 0
+          maximum: 60
+        temperature:
+          type: number
+          format: double
+          minimum: 30.0
+          maximum: 45.0
+        oxygenSaturation:
+          type: integer
+          minimum: 0
+          maximum: 100
+        painLevel:
+          type: integer
+          minimum: 0
+          maximum: 10
+        consciousnessLevel:
+          $ref: '#/components/schemas/ConsciousnessLevel'
+        glucoseLevel:
+          type: number
+          format: double
+
+    DecisionSupportRequest:
+      type: object
+      required:
+        - symptoms
+      properties:
+        patientAge:
+          type: integer
+        patientSex:
+          type: string
+          enum: [MALE, FEMALE, OTHER]
+        symptoms:
+          type: array
+          items:
+            $ref: '#/components/schemas/SymptomRequest'
+        vitalSigns:
+          $ref: '#/components/schemas/VitalSignsRequest'
+        medicalHistory:
+          type: array
+          items:
+            type: string
+        currentMedications:
+          type: array
+          items:
+            type: string
+
+    TriageAssessmentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        triageNurseId:
+          type: string
+          format: uuid
+        triageNurseName:
+          type: string
+        chiefComplaint:
+          type: string
+        priority:
+          $ref: '#/components/schemas/TriagePriority'
+        careLevel:
+          $ref: '#/components/schemas/CareLevel'
+        disposition:
+          $ref: '#/components/schemas/Disposition'
+        status:
+          $ref: '#/components/schemas/AssessmentStatus'
+        arrivalMode:
+          $ref: '#/components/schemas/ArrivalMode'
+        arrivalTime:
+          type: string
+          format: date-time
+        triageStartTime:
+          type: string
+          format: date-time
+        triageEndTime:
+          type: string
+          format: date-time
+        waitTimeMinutes:
+          type: integer
+        symptoms:
+          type: array
+          items:
+            $ref: '#/components/schemas/SymptomResponse'
+        vitalSigns:
+          $ref: '#/components/schemas/VitalSignsResponse'
+        notes:
+          type: string
+        escalationHistory:
+          type: array
+          items:
+            $ref: '#/components/schemas/EscalationRecord'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SymptomResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        symptomCode:
+          type: string
+        description:
+          type: string
+        onset:
+          type: string
+          format: date-time
+        duration:
+          type: string
+        severity:
+          $ref: '#/components/schemas/Severity'
+        bodyLocation:
+          type: string
+        isChiefComplaint:
+          type: boolean
+        recordedAt:
+          type: string
+          format: date-time
+
+    VitalSignsResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        bloodPressureSystolic:
+          type: integer
+        bloodPressureDiastolic:
+          type: integer
+        heartRate:
+          type: integer
+        respiratoryRate:
+          type: integer
+        temperature:
+          type: number
+          format: double
+        oxygenSaturation:
+          type: integer
+        painLevel:
+          type: integer
+        consciousnessLevel:
+          $ref: '#/components/schemas/ConsciousnessLevel'
+        glucoseLevel:
+          type: number
+          format: double
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/VitalSignWarning'
+        recordedAt:
+          type: string
+          format: date-time
+        recordedBy:
+          type: string
+          format: uuid
+
+    VitalSignWarning:
+      type: object
+      properties:
+        parameter:
+          type: string
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        message:
+          type: string
+
+    EscalationRecord:
+      type: object
+      properties:
+        previousPriority:
+          $ref: '#/components/schemas/TriagePriority'
+        newPriority:
+          $ref: '#/components/schemas/TriagePriority'
+        reason:
+          type: string
+        escalatedBy:
+          type: string
+          format: uuid
+        escalatedAt:
+          type: string
+          format: date-time
+
+    DecisionSupportResponse:
+      type: object
+      properties:
+        recommendedPriority:
+          $ref: '#/components/schemas/TriagePriority'
+        recommendedCareLevel:
+          $ref: '#/components/schemas/CareLevel'
+        confidence:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClinicalWarning'
+        suggestedProtocols:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProtocolSuggestion'
+        differentialDiagnoses:
+          type: array
+          items:
+            $ref: '#/components/schemas/DifferentialDiagnosis'
+        recommendedActions:
+          type: array
+          items:
+            type: string
+        redFlags:
+          type: array
+          items:
+            type: string
+
+    ClinicalWarning:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [VITAL_SIGN, SYMPTOM_COMBINATION, TIME_SENSITIVE, MEDICATION]
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        message:
+          type: string
+        action:
+          type: string
+
+    ProtocolSuggestion:
+      type: object
+      properties:
+        protocolId:
+          type: string
+          format: uuid
+        protocolName:
+          type: string
+        relevance:
+          type: number
+          format: double
+
+    DifferentialDiagnosis:
+      type: object
+      properties:
+        diagnosisCode:
+          type: string
+        diagnosisName:
+          type: string
+        probability:
+          type: number
+          format: double
+
+    TriageProtocolResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        version:
+          type: string
+        active:
+          type: boolean
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProtocolStep'
+        redFlags:
+          type: array
+          items:
+            type: string
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProtocolStep:
+      type: object
+      properties:
+        order:
+          type: integer
+        instruction:
+          type: string
+        assessmentCriteria:
+          type: string
+        actions:
+          type: array
+          items:
+            type: string
+
+    TriageQueueResponse:
+      type: object
+      properties:
+        locationId:
+          type: string
+          format: uuid
+        locationName:
+          type: string
+        totalWaiting:
+          type: integer
+        byPriority:
+          type: object
+          additionalProperties:
+            type: integer
+        averageWaitMinutes:
+          type: integer
+        patients:
+          type: array
+          items:
+            $ref: '#/components/schemas/QueuedPatient'
+
+    QueuedPatient:
+      type: object
+      properties:
+        assessmentId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        priority:
+          $ref: '#/components/schemas/TriagePriority'
+        chiefComplaint:
+          type: string
+        arrivalTime:
+          type: string
+          format: date-time
+        waitTimeMinutes:
+          type: integer
+        maxWaitMinutes:
+          type: integer
+        isOverdue:
+          type: boolean
+
+    PagedAssessmentResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/TriageAssessmentResponse'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        size:
+          type: integer
+        number:
+          type: integer
+
+    TriagePriority:
+      type: string
+      enum:
+        - IMMEDIATE      # Red - Immediate life threat
+        - EMERGENT       # Orange - Time-critical, < 15 min
+        - URGENT         # Yellow - Serious, < 60 min
+        - LESS_URGENT    # Green - Standard, < 120 min
+        - NON_URGENT     # Blue - Minor, < 240 min
+
+    CareLevel:
+      type: string
+      enum:
+        - INTENSIVE_CARE
+        - EMERGENCY_CARE
+        - INPATIENT_CARE
+        - OUTPATIENT_CARE
+        - PRIMARY_CARE
+        - SELF_CARE
+
+    Disposition:
+      type: string
+      enum:
+        - ADMIT
+        - OBSERVE
+        - TREAT_AND_RELEASE
+        - REFER
+        - DISCHARGE
+        - TRANSFER
+        - LEFT_WITHOUT_BEING_SEEN
+
+    AssessmentStatus:
+      type: string
+      enum:
+        - IN_PROGRESS
+        - COMPLETED
+        - CANCELLED
+        - REASSESSMENT_NEEDED
+
+    ArrivalMode:
+      type: string
+      enum:
+        - AMBULANCE
+        - WALK_IN
+        - POLICE
+        - HELICOPTER
+        - REFERRAL
+        - OTHER
+
+    Severity:
+      type: string
+      enum:
+        - MILD
+        - MODERATE
+        - SEVERE
+        - CRITICAL
+
+    ConsciousnessLevel:
+      type: string
+      enum:
+        - ALERT
+        - VERBAL
+        - PAIN
+        - UNRESPONSIVE
+
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
