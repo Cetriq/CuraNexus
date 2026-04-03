@@ -28,13 +28,13 @@ export function DashboardPage() {
       color: 'text-blue-500',
     },
     {
-      title: 'Aktiva vardkontakter',
+      title: 'Aktiva vårdkontakter',
       value: activeEncounters?.filter(e => e.status === 'IN_PROGRESS').length ?? 0,
       icon: Stethoscope,
       color: 'text-green-500',
     },
     {
-      title: 'Vantande',
+      title: 'Väntande',
       value: activeEncounters?.filter(e => e.status === 'PLANNED').length ?? 0,
       icon: ClipboardCheck,
       color: 'text-yellow-500',
@@ -52,7 +52,7 @@ export function DashboardPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
-          Oversikt over vardenheten
+          Översikt över vårdenheten
         </p>
       </div>
 
@@ -75,7 +75,7 @@ export function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Aktiva vardkontakter</CardTitle>
+            <CardTitle>Aktiva vårdkontakter</CardTitle>
           </CardHeader>
           <CardContent>
             {activeEncounters && activeEncounters.length > 0 ? (
@@ -86,9 +86,9 @@ export function DashboardPage() {
                     className="flex items-center justify-between p-3 rounded-lg border"
                   >
                     <div>
-                      <p className="font-medium">{encounter.patientName || 'Okand patient'}</p>
+                      <p className="font-medium">{encounter.patientName || 'Okänd patient'}</p>
                       <p className="text-sm text-muted-foreground">
-                        {encounter.chiefComplaint || 'Ingen sokorsak angiven'}
+                        {encounter.chiefComplaint || 'Ingen sökorsak angiven'}
                       </p>
                     </div>
                     <Badge
@@ -100,7 +100,7 @@ export function DashboardPage() {
                           : 'secondary'
                       }
                     >
-                      {encounter.status === 'IN_PROGRESS' ? 'Pagaende' :
+                      {encounter.status === 'IN_PROGRESS' ? 'Pågående' :
                        encounter.status === 'PLANNED' ? 'Planerad' :
                        encounter.status}
                     </Badge>
@@ -108,7 +108,7 @@ export function DashboardPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground">Inga aktiva vardkontakter</p>
+              <p className="text-muted-foreground">Inga aktiva vårdkontakter</p>
             )}
           </CardContent>
         </Card>

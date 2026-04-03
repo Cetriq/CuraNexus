@@ -14,10 +14,10 @@ import { cn } from '@/lib/utils'
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Patienter', href: '/patients', icon: Users },
-  { name: 'Vardkontakter', href: '/encounters', icon: Stethoscope },
+  { name: 'Vårdkontakter', href: '/encounters', icon: Stethoscope },
   { name: 'Uppgifter', href: '/tasks', icon: ClipboardList },
   { name: 'Bokningar', href: '/booking', icon: Calendar },
-  { name: 'Lakemedel', href: '/medication', icon: Pill },
+  { name: 'Läkemedel', href: '/medication', icon: Pill },
   { name: 'Remisser', href: '/referrals', icon: FileText },
   { name: 'Labb', href: '/lab', icon: FlaskConical },
 ]
@@ -61,7 +61,7 @@ export function Sidebar() {
               Anna Karlsson
             </p>
             <p className="text-xs text-muted-foreground truncate">
-              Lakare
+              Läkare
             </p>
           </div>
         </div>

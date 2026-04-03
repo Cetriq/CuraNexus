@@ -21,8 +21,8 @@ export function EncounterListPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Vardkontakter</h1>
-        <p className="text-muted-foreground">Hantera pagaende och avslutade vardkontakter</p>
+        <h1 className="text-3xl font-bold tracking-tight">Vårdkontakter</h1>
+        <p className="text-muted-foreground">Hantera pågående och avslutade vårdkontakter</p>
       </div>
 
       {isLoading ? (
@@ -46,10 +46,10 @@ export function EncounterListPage() {
                         <div className="flex items-start justify-between">
                           <div>
                             <p className="font-semibold">
-                              {encounter.patientName || 'Okand patient'}
+                              {encounter.patientName || 'Okänd patient'}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              {encounter.chiefComplaint || 'Ingen sokorsak'}
+                              {encounter.chiefComplaint || 'Ingen sökorsak'}
                             </p>
                             <p className="text-xs text-muted-foreground mt-2">
                               {formatDateTime(encounter.createdAt)}
@@ -60,7 +60,7 @@ export function EncounterListPage() {
                               encounter.status === 'IN_PROGRESS' ? 'success' : 'warning'
                             }
                           >
-                            {encounter.status === 'IN_PROGRESS' ? 'Pagaende' : 'Planerad'}
+                            {encounter.status === 'IN_PROGRESS' ? 'Pågående' : 'Planerad'}
                           </Badge>
                         </div>
                         <div className="mt-4 flex gap-2">
@@ -77,7 +77,7 @@ export function EncounterListPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground">Inga aktiva vardkontakter</p>
+              <p className="text-muted-foreground">Inga aktiva vårdkontakter</p>
             )}
           </div>
 
@@ -98,10 +98,10 @@ export function EncounterListPage() {
                         <div className="flex items-start justify-between">
                           <div>
                             <p className="font-semibold">
-                              {encounter.patientName || 'Okand patient'}
+                              {encounter.patientName || 'Okänd patient'}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              {encounter.chiefComplaint || 'Ingen sokorsak'}
+                              {encounter.chiefComplaint || 'Ingen sökorsak'}
                             </p>
                             <p className="text-xs text-muted-foreground mt-2">
                               {formatDateTime(encounter.endTime || encounter.updatedAt)}
@@ -115,7 +115,7 @@ export function EncounterListPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground">Inga avslutade vardkontakter</p>
+              <p className="text-muted-foreground">Inga avslutade vårdkontakter</p>
             )}
           </div>
         </>

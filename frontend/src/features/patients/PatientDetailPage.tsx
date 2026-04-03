@@ -77,7 +77,7 @@ export function PatientDetailPage() {
         </div>
         <Button onClick={handleCreateEncounter} disabled={createEncounterMutation.isPending}>
           <Plus className="h-4 w-4 mr-2" />
-          Ny vardkontakt
+          Ny vårdkontakt
         </Button>
       </div>
 
@@ -96,15 +96,15 @@ export function PatientDetailPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-muted-foreground">Kon</p>
+                <p className="text-muted-foreground">Kön</p>
                 <p className="font-medium">
                   {patient.gender === 'MALE' ? 'Man' :
                    patient.gender === 'FEMALE' ? 'Kvinna' :
-                   patient.gender === 'OTHER' ? 'Annat' : 'Okant'}
+                   patient.gender === 'OTHER' ? 'Annat' : 'Okänt'}
                 </p>
               </div>
               <div>
-                <p className="text-muted-foreground">Fodelsedatum</p>
+                <p className="text-muted-foreground">Födelsedatum</p>
                 <p className="font-medium">{patient.dateOfBirth || '-'}</p>
               </div>
               <div>
@@ -152,7 +152,7 @@ export function PatientDetailPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Vardkontakter</CardTitle>
+            <CardTitle>Vårdkontakter</CardTitle>
           </CardHeader>
           <CardContent>
             {encountersLoading ? (
@@ -169,7 +169,7 @@ export function PatientDetailPage() {
                     <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent transition-colors">
                       <div>
                         <p className="font-medium">
-                          {encounter.chiefComplaint || 'Ingen sokorsak'}
+                          {encounter.chiefComplaint || 'Ingen sökorsak'}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {formatDateTime(encounter.createdAt)}
@@ -183,7 +183,7 @@ export function PatientDetailPage() {
                           'outline'
                         }
                       >
-                        {encounter.status === 'IN_PROGRESS' ? 'Pagaende' :
+                        {encounter.status === 'IN_PROGRESS' ? 'Pågående' :
                          encounter.status === 'COMPLETED' ? 'Avslutad' :
                          encounter.status === 'PLANNED' ? 'Planerad' :
                          encounter.status === 'CANCELLED' ? 'Makulerad' :
@@ -194,7 +194,7 @@ export function PatientDetailPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground">Inga vardkontakter</p>
+              <p className="text-muted-foreground">Inga vårdkontakter</p>
             )}
           </CardContent>
         </Card>

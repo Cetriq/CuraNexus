@@ -32,6 +32,12 @@ public class EncounterController {
         this.readinessService = readinessService;
     }
 
+    @GetMapping("/encounters/active")
+    @Operation(summary = "Get active encounters")
+    public List<EncounterSummaryDto> getActiveEncounters() {
+        return encounterService.getActiveEncounters();
+    }
+
     @GetMapping("/encounters")
     @Operation(summary = "Search encounters")
     public Page<EncounterSummaryDto> searchEncounters(

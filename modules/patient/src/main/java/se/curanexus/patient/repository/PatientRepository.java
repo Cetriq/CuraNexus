@@ -21,8 +21,8 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
     @Query("""
         SELECT p FROM Patient p
         WHERE (:personalIdentityNumber IS NULL OR p.personalIdentityNumber = :personalIdentityNumber)
-        AND (:name IS NULL OR LOWER(p.givenName) LIKE LOWER(CONCAT('%', :name, '%'))
-            OR LOWER(p.familyName) LIKE LOWER(CONCAT('%', :name, '%')))
+        AND (:name IS NULL OR LOWER(CAST(p.givenName AS string)) LIKE LOWER(CONCAT('%', CAST(:name AS string), '%'))
+            OR LOWER(CAST(p.familyName AS string)) LIKE LOWER(CONCAT('%', CAST(:name AS string), '%')))
         """)
     Page<Patient> searchPatients(
             @Param("personalIdentityNumber") String personalIdentityNumber,

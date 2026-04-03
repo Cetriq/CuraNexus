@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import se.curanexus.encounter.domain.Encounter;
 import se.curanexus.encounter.domain.EncounterStatus;
 
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -15,4 +16,6 @@ public interface EncounterRepository extends JpaRepository<Encounter, UUID>, Enc
     Page<Encounter> findByPatientId(UUID patientId, Pageable pageable);
 
     Page<Encounter> findByPatientIdAndStatus(UUID patientId, EncounterStatus status, Pageable pageable);
+
+    List<Encounter> findByStatusIn(List<EncounterStatus> statuses);
 }

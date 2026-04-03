@@ -45,11 +45,11 @@ export function EncounterDetailPage() {
   })
 
   if (encounterLoading) {
-    return <p className="text-muted-foreground">Laddar vardkontakt...</p>
+    return <p className="text-muted-foreground">Laddar vårdkontakt...</p>
   }
 
   if (!encounter) {
-    return <p className="text-destructive">Vardkontakt hittades ej</p>
+    return <p className="text-destructive">Vårdkontakt hittades ej</p>
   }
 
   const pendingTasks = tasks?.filter((t) => t.status === 'PENDING' || t.status === 'IN_PROGRESS')
@@ -66,7 +66,7 @@ export function EncounterDetailPage() {
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold tracking-tight">
-              {encounter.patientName || 'Okand patient'}
+              {encounter.patientName || 'Okänd patient'}
             </h1>
             <Badge
               variant={
@@ -76,14 +76,14 @@ export function EncounterDetailPage() {
                 'outline'
               }
             >
-              {encounter.status === 'IN_PROGRESS' ? 'Pagaende' :
+              {encounter.status === 'IN_PROGRESS' ? 'Pågående' :
                encounter.status === 'COMPLETED' ? 'Avslutad' :
                encounter.status === 'PLANNED' ? 'Planerad' :
                encounter.status}
             </Badge>
           </div>
           <p className="text-muted-foreground">
-            {encounter.chiefComplaint || 'Ingen sokorsak angiven'}
+            {encounter.chiefComplaint || 'Ingen sökorsak angiven'}
           </p>
         </div>
         <div className="flex gap-2">
@@ -105,15 +105,15 @@ export function EncounterDetailPage() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Vardkontaktinformation</CardTitle>
+            <CardTitle>Vårdkontaktinformation</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Typ</p>
                 <p className="font-medium">
-                  {encounter.encounterClass === 'OUTPATIENT' ? 'Oppenvard' :
-                   encounter.encounterClass === 'INPATIENT' ? 'Slutenvard' :
+                  {encounter.encounterClass === 'OUTPATIENT' ? 'Öppenvård' :
+                   encounter.encounterClass === 'INPATIENT' ? 'Slutenvård' :
                    encounter.encounterClass === 'EMERGENCY' ? 'Akut' :
                    encounter.encounterClass}
                 </p>
@@ -211,7 +211,7 @@ export function EncounterDetailPage() {
                 {completedTasks && completedTasks.length > 0 && (
                   <div className="pt-4 border-t">
                     <p className="text-sm text-muted-foreground mb-2">
-                      Slutforda ({completedTasks.length})
+                      Slutförda ({completedTasks.length})
                     </p>
                     {completedTasks.map((task) => (
                       <div

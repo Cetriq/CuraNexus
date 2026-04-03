@@ -60,6 +60,20 @@ public class EncounterService {
     }
 
     @Transactional(readOnly = true)
+    public List<EncounterSummaryDto> getActiveEncounters() {
+        List<EncounterStatus> activeStatuses = List.of(
+                EncounterStatus.PLANNED,
+                EncounterStatus.ARRIVED,
+                EncounterStatus.TRIAGED,
+                EncounterStatus.IN_PROGRESS,
+                EncounterStatus.ON_HOLD
+        );
+        return encounterRepository.findByStatusIn(activeStatuses).stream()
+                .map(EncounterSummaryDto::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public Page<EncounterSummaryDto> getPatientEncounters(UUID patientId, EncounterStatus status, Pageable pageable) {
         if (status != null) {
             return encounterRepository.findByPatientIdAndStatus(patientId, status, pageable)

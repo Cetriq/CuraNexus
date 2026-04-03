@@ -1,11 +1,20 @@
 import { apiClient } from './client'
 import type { Encounter, CreateEncounterRequest, EncounterTask } from '@/types'
 
+interface PageResponse<T> {
+  content: T[]
+  totalElements: number
+  totalPages: number
+  size: number
+  number: number
+}
+
 const BASE_URL = '/api/encounter/encounters'
 
 export const encountersApi = {
   getAll: async (): Promise<Encounter[]> => {
-    return apiClient.get<Encounter[]>(BASE_URL)
+    const result = await apiClient.get<PageResponse<Encounter>>(BASE_URL)
+    return result.content
   },
 
   getById: async (id: string): Promise<Encounter> => {

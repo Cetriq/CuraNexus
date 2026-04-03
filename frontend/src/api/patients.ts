@@ -5,7 +5,8 @@ const BASE_URL = '/api/patient/patients'
 
 export const patientsApi = {
   getAll: async (): Promise<Patient[]> => {
-    return apiClient.get<Patient[]>(BASE_URL)
+    const result = await apiClient.get<PatientSearchResult>(BASE_URL)
+    return result.content
   },
 
   getById: async (id: string): Promise<Patient> => {
