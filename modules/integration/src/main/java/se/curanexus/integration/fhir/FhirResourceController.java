@@ -2,16 +2,20 @@ package se.curanexus.integration.fhir;
 
 import ca.uhn.fhir.context.FhirContext;
 import org.hl7.fhir.r4.model.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
+import reactor.core.publisher.Mono;
+import se.curanexus.integration.client.EncounterServiceClient;
+import se.curanexus.integration.client.JournalServiceClient;
+import se.curanexus.integration.client.PatientServiceClient;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * FHIR R4 Resource endpoints.
@@ -28,6 +32,7 @@ import java.util.*;
 @RequestMapping("/fhir")
 public class FhirResourceController {
 
+    private static final Logger log = LoggerFactory.getLogger(FhirResourceController.class);
     private static final MediaType FHIR_JSON = MediaType.parseMediaType("application/fhir+json");
 
     private final FhirContext fhirContext;
@@ -35,136 +40,312 @@ public class FhirResourceController {
     private final EncounterFhirMapper encounterMapper;
     private final ObservationFhirMapper observationMapper;
     private final ConditionFhirMapper conditionMapper;
+    private final PatientServiceClient patientClient;
+    private final EncounterServiceClient encounterClient;
+    private final JournalServiceClient journalClient;
 
     public FhirResourceController(
             FhirContext fhirContext,
             PatientFhirMapper patientMapper,
             EncounterFhirMapper encounterMapper,
             ObservationFhirMapper observationMapper,
-            ConditionFhirMapper conditionMapper) {
+            ConditionFhirMapper conditionMapper,
+            PatientServiceClient patientClient,
+            EncounterServiceClient encounterClient,
+            JournalServiceClient journalClient) {
         this.fhirContext = fhirContext;
         this.patientMapper = patientMapper;
         this.encounterMapper = encounterMapper;
         this.observationMapper = observationMapper;
         this.conditionMapper = conditionMapper;
+        this.patientClient = patientClient;
+        this.encounterClient = encounterClient;
+        this.journalClient = journalClient;
     }
 
     // ========== Patient Resources ==========
 
     @GetMapping(value = "/Patient/{id}", produces = "application/fhir+json")
-    public ResponseEntity<String> getPatient(@PathVariable String id) {
-        // TODO: Fetch from patient service via RestClient
-        // For now, return example data
-        PatientFhirMapper.PatientData mockPatient = createMockPatient(id);
-        Patient fhirPatient = patientMapper.toFhir(mockPatient);
-        return ResponseEntity.ok()
-                .contentType(FHIR_JSON)
-                .body(toJson(fhirPatient));
+    public Mono<ResponseEntity<String>> getPatient(@PathVariable String id) {
+        log.info("FHIR Patient read: {}", id);
+
+        UUID patientId;
+        try {
+            patientId = UUID.fromString(id);
+        } catch (IllegalArgumentException e) {
+            return Mono.just(createOperationOutcome("Invalid patient ID format", OperationOutcome.IssueType.INVALID));
+        }
+
+        return patientClient.getPatient(patientId)
+                .map(this::mapToFhirPatient)
+                .map(fhirPatient -> ResponseEntity.ok()
+                        .contentType(FHIR_JSON)
+                        .body(toJson(fhirPatient)))
+                .defaultIfEmpty(createOperationOutcome("Patient not found: " + id, OperationOutcome.IssueType.NOTFOUND))
+                .onErrorResume(e -> {
+                    log.error("Error fetching patient {}: {}", id, e.getMessage());
+                    return Mono.just(createOperationOutcome("Error fetching patient", OperationOutcome.IssueType.EXCEPTION));
+                });
     }
 
     @GetMapping(value = "/Patient", produces = "application/fhir+json")
-    public ResponseEntity<String> searchPatients(
+    public Mono<ResponseEntity<String>> searchPatients(
             @RequestParam(required = false) String identifier,
             @RequestParam(required = false) String family,
             @RequestParam(required = false) String given,
             @RequestParam(required = false, defaultValue = "10") int _count) {
 
-        // TODO: Implement actual search via patient service
-        List<Patient> patients = new ArrayList<>();
+        log.info("FHIR Patient search: identifier={}, family={}, given={}", identifier, family, given);
 
-        // Mock response with search results
+        Mono<List<PatientServiceClient.PatientResponse>> searchResult;
+
         if (identifier != null) {
-            PatientFhirMapper.PatientData mockPatient = createMockPatientByIdentifier(identifier);
-            if (mockPatient != null) {
-                patients.add(patientMapper.toFhir(mockPatient));
-            }
+            String personnummer = extractPersonnummer(identifier);
+            searchResult = patientClient.searchByPersonnummer(personnummer);
+        } else if (family != null || given != null) {
+            String name = family != null ? family : given;
+            searchResult = patientClient.searchByName(name, _count);
+        } else {
+            Bundle bundle = createSearchBundle(List.of(), "Patient");
+            return Mono.just(ResponseEntity.ok()
+                    .contentType(FHIR_JSON)
+                    .body(toJson(bundle)));
         }
 
-        Bundle bundle = createSearchBundle(patients, "Patient");
-        return ResponseEntity.ok()
-                .contentType(FHIR_JSON)
-                .body(toJson(bundle));
+        return searchResult
+                .map(patients -> {
+                    List<Patient> fhirPatients = patients.stream()
+                            .map(this::mapToFhirPatient)
+                            .collect(Collectors.toList());
+                    Bundle bundle = createSearchBundle(fhirPatients, "Patient");
+                    return ResponseEntity.ok()
+                            .contentType(FHIR_JSON)
+                            .body(toJson(bundle));
+                })
+                .onErrorResume(e -> {
+                    log.error("Error searching patients: {}", e.getMessage());
+                    return Mono.just(createOperationOutcome("Error searching patients", OperationOutcome.IssueType.EXCEPTION));
+                });
     }
 
     // ========== Encounter Resources ==========
 
     @GetMapping(value = "/Encounter/{id}", produces = "application/fhir+json")
-    public ResponseEntity<String> getEncounter(@PathVariable String id) {
-        // TODO: Fetch from encounter service
-        EncounterFhirMapper.EncounterData mockEncounter = createMockEncounter(id);
-        Encounter fhirEncounter = encounterMapper.toFhir(mockEncounter);
-        return ResponseEntity.ok()
-                .contentType(FHIR_JSON)
-                .body(toJson(fhirEncounter));
+    public Mono<ResponseEntity<String>> getEncounter(@PathVariable String id) {
+        log.info("FHIR Encounter read: {}", id);
+
+        UUID encounterId;
+        try {
+            encounterId = UUID.fromString(id);
+        } catch (IllegalArgumentException e) {
+            return Mono.just(createOperationOutcome("Invalid encounter ID format", OperationOutcome.IssueType.INVALID));
+        }
+
+        return encounterClient.getEncounter(encounterId)
+                .map(this::mapToFhirEncounter)
+                .map(fhirEncounter -> ResponseEntity.ok()
+                        .contentType(FHIR_JSON)
+                        .body(toJson(fhirEncounter)))
+                .defaultIfEmpty(createOperationOutcome("Encounter not found: " + id, OperationOutcome.IssueType.NOTFOUND))
+                .onErrorResume(e -> {
+                    log.error("Error fetching encounter {}: {}", id, e.getMessage());
+                    return Mono.just(createOperationOutcome("Error fetching encounter", OperationOutcome.IssueType.EXCEPTION));
+                });
     }
 
     @GetMapping(value = "/Encounter", produces = "application/fhir+json")
-    public ResponseEntity<String> searchEncounters(
+    public Mono<ResponseEntity<String>> searchEncounters(
             @RequestParam(required = false) String patient,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String _class,
+            @RequestParam(required = false, name = "class") String encounterClass,
             @RequestParam(required = false, defaultValue = "10") int _count) {
 
-        // TODO: Implement actual search
-        List<Encounter> encounters = new ArrayList<>();
+        log.info("FHIR Encounter search: patient={}, status={}, class={}", patient, status, encounterClass);
 
-        Bundle bundle = createSearchBundle(encounters, "Encounter");
-        return ResponseEntity.ok()
-                .contentType(FHIR_JSON)
-                .body(toJson(bundle));
+        Mono<List<EncounterServiceClient.EncounterResponse>> searchResult;
+
+        if (patient != null) {
+            UUID patientId = extractResourceId(patient);
+            if (patientId == null) {
+                return Mono.just(createOperationOutcome("Invalid patient reference", OperationOutcome.IssueType.INVALID));
+            }
+            searchResult = encounterClient.searchByPatient(patientId, _count);
+        } else if (status != null) {
+            String internalStatus = mapFhirStatusToInternal(status);
+            searchResult = encounterClient.searchByStatus(internalStatus, _count);
+        } else if (encounterClass != null) {
+            String internalClass = mapFhirClassToInternal(encounterClass);
+            searchResult = encounterClient.searchByClass(internalClass, _count);
+        } else {
+            Bundle bundle = createSearchBundle(List.of(), "Encounter");
+            return Mono.just(ResponseEntity.ok()
+                    .contentType(FHIR_JSON)
+                    .body(toJson(bundle)));
+        }
+
+        return searchResult
+                .map(encounters -> {
+                    List<Encounter> fhirEncounters = encounters.stream()
+                            .map(this::mapToFhirEncounter)
+                            .collect(Collectors.toList());
+                    Bundle bundle = createSearchBundle(fhirEncounters, "Encounter");
+                    return ResponseEntity.ok()
+                            .contentType(FHIR_JSON)
+                            .body(toJson(bundle));
+                })
+                .onErrorResume(e -> {
+                    log.error("Error searching encounters: {}", e.getMessage());
+                    return Mono.just(createOperationOutcome("Error searching encounters", OperationOutcome.IssueType.EXCEPTION));
+                });
     }
 
     // ========== Observation Resources ==========
 
     @GetMapping(value = "/Observation/{id}", produces = "application/fhir+json")
-    public ResponseEntity<String> getObservation(@PathVariable String id) {
-        // TODO: Fetch from journal service
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Observation not found");
+    public Mono<ResponseEntity<String>> getObservation(@PathVariable String id) {
+        log.info("FHIR Observation read: {}", id);
+
+        UUID observationId;
+        try {
+            observationId = UUID.fromString(id);
+        } catch (IllegalArgumentException e) {
+            return Mono.just(createOperationOutcome("Invalid observation ID format", OperationOutcome.IssueType.INVALID));
+        }
+
+        return journalClient.getObservation(observationId)
+                .map(this::mapToFhirObservation)
+                .map(fhirObservation -> ResponseEntity.ok()
+                        .contentType(FHIR_JSON)
+                        .body(toJson(fhirObservation)))
+                .defaultIfEmpty(createOperationOutcome("Observation not found: " + id, OperationOutcome.IssueType.NOTFOUND))
+                .onErrorResume(e -> {
+                    log.error("Error fetching observation {}: {}", id, e.getMessage());
+                    return Mono.just(createOperationOutcome("Error fetching observation", OperationOutcome.IssueType.EXCEPTION));
+                });
     }
 
     @GetMapping(value = "/Observation", produces = "application/fhir+json")
-    public ResponseEntity<String> searchObservations(
+    public Mono<ResponseEntity<String>> searchObservations(
             @RequestParam(required = false) String patient,
             @RequestParam(required = false) String encounter,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String code,
             @RequestParam(required = false, defaultValue = "10") int _count) {
 
-        List<Observation> observations = new ArrayList<>();
+        log.info("FHIR Observation search: patient={}, encounter={}, category={}, code={}", patient, encounter, category, code);
 
-        // Example: If searching for vital signs
-        if ("vital-signs".equals(category) && patient != null) {
-            // Return mock vital signs
-            observations.addAll(createMockVitalSigns(UUID.fromString(patient.replace("Patient/", ""))));
+        Mono<List<JournalServiceClient.ObservationResponse>> searchResult;
+
+        if (patient != null) {
+            UUID patientId = extractResourceId(patient);
+            if (patientId == null) {
+                return Mono.just(createOperationOutcome("Invalid patient reference", OperationOutcome.IssueType.INVALID));
+            }
+
+            if (category != null) {
+                String internalCategory = mapFhirCategoryToInternal(category);
+                searchResult = journalClient.searchObservationsByCategory(patientId, internalCategory, _count);
+            } else {
+                searchResult = journalClient.searchObservationsByPatient(patientId, _count);
+            }
+        } else if (encounter != null) {
+            UUID encounterId = extractResourceId(encounter);
+            if (encounterId == null) {
+                return Mono.just(createOperationOutcome("Invalid encounter reference", OperationOutcome.IssueType.INVALID));
+            }
+            searchResult = journalClient.searchObservationsByEncounter(encounterId, _count);
+        } else {
+            Bundle bundle = createSearchBundle(List.of(), "Observation");
+            return Mono.just(ResponseEntity.ok()
+                    .contentType(FHIR_JSON)
+                    .body(toJson(bundle)));
         }
 
-        Bundle bundle = createSearchBundle(observations, "Observation");
-        return ResponseEntity.ok()
-                .contentType(FHIR_JSON)
-                .body(toJson(bundle));
+        return searchResult
+                .map(observations -> {
+                    List<Observation> fhirObservations = observations.stream()
+                            .map(this::mapToFhirObservation)
+                            .collect(Collectors.toList());
+                    Bundle bundle = createSearchBundle(fhirObservations, "Observation");
+                    return ResponseEntity.ok()
+                            .contentType(FHIR_JSON)
+                            .body(toJson(bundle));
+                })
+                .onErrorResume(e -> {
+                    log.error("Error searching observations: {}", e.getMessage());
+                    return Mono.just(createOperationOutcome("Error searching observations", OperationOutcome.IssueType.EXCEPTION));
+                });
     }
 
     // ========== Condition Resources ==========
 
     @GetMapping(value = "/Condition/{id}", produces = "application/fhir+json")
-    public ResponseEntity<String> getCondition(@PathVariable String id) {
-        // TODO: Fetch from journal service
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Condition not found");
+    public Mono<ResponseEntity<String>> getCondition(@PathVariable String id) {
+        log.info("FHIR Condition read: {}", id);
+
+        UUID diagnosisId;
+        try {
+            diagnosisId = UUID.fromString(id);
+        } catch (IllegalArgumentException e) {
+            return Mono.just(createOperationOutcome("Invalid condition ID format", OperationOutcome.IssueType.INVALID));
+        }
+
+        return journalClient.getDiagnosis(diagnosisId)
+                .map(this::mapToFhirCondition)
+                .map(fhirCondition -> ResponseEntity.ok()
+                        .contentType(FHIR_JSON)
+                        .body(toJson(fhirCondition)))
+                .defaultIfEmpty(createOperationOutcome("Condition not found: " + id, OperationOutcome.IssueType.NOTFOUND))
+                .onErrorResume(e -> {
+                    log.error("Error fetching condition {}: {}", id, e.getMessage());
+                    return Mono.just(createOperationOutcome("Error fetching condition", OperationOutcome.IssueType.EXCEPTION));
+                });
     }
 
     @GetMapping(value = "/Condition", produces = "application/fhir+json")
-    public ResponseEntity<String> searchConditions(
+    public Mono<ResponseEntity<String>> searchConditions(
             @RequestParam(required = false) String patient,
             @RequestParam(required = false) String encounter,
             @RequestParam(required = false) String category,
             @RequestParam(required = false, defaultValue = "10") int _count) {
 
-        List<Condition> conditions = new ArrayList<>();
+        log.info("FHIR Condition search: patient={}, encounter={}, category={}", patient, encounter, category);
 
-        Bundle bundle = createSearchBundle(conditions, "Condition");
-        return ResponseEntity.ok()
-                .contentType(FHIR_JSON)
-                .body(toJson(bundle));
+        Mono<List<JournalServiceClient.DiagnosisResponse>> searchResult;
+
+        if (patient != null) {
+            UUID patientId = extractResourceId(patient);
+            if (patientId == null) {
+                return Mono.just(createOperationOutcome("Invalid patient reference", OperationOutcome.IssueType.INVALID));
+            }
+            searchResult = journalClient.searchDiagnosesByPatient(patientId, _count);
+        } else if (encounter != null) {
+            UUID encounterId = extractResourceId(encounter);
+            if (encounterId == null) {
+                return Mono.just(createOperationOutcome("Invalid encounter reference", OperationOutcome.IssueType.INVALID));
+            }
+            searchResult = journalClient.searchDiagnosesByEncounter(encounterId, _count);
+        } else {
+            Bundle bundle = createSearchBundle(List.of(), "Condition");
+            return Mono.just(ResponseEntity.ok()
+                    .contentType(FHIR_JSON)
+                    .body(toJson(bundle)));
+        }
+
+        return searchResult
+                .map(diagnoses -> {
+                    List<Condition> fhirConditions = diagnoses.stream()
+                            .map(this::mapToFhirCondition)
+                            .collect(Collectors.toList());
+                    Bundle bundle = createSearchBundle(fhirConditions, "Condition");
+                    return ResponseEntity.ok()
+                            .contentType(FHIR_JSON)
+                            .body(toJson(bundle));
+                })
+                .onErrorResume(e -> {
+                    log.error("Error searching conditions: {}", e.getMessage());
+                    return Mono.just(createOperationOutcome("Error searching conditions", OperationOutcome.IssueType.EXCEPTION));
+                });
     }
 
     // ========== Helper Methods ==========
@@ -180,7 +361,6 @@ public class FhirResourceController {
         bundle.setTotal(resources.size());
         bundle.setTimestamp(new Date());
 
-        // Add link for self
         bundle.addLink()
                 .setRelation("self")
                 .setUrl("/fhir/" + resourceType);
@@ -195,112 +375,227 @@ public class FhirResourceController {
         return bundle;
     }
 
-    // ========== Mock Data (to be replaced with actual service calls) ==========
+    private ResponseEntity<String> createOperationOutcome(String message, OperationOutcome.IssueType issueType) {
+        OperationOutcome outcome = new OperationOutcome();
+        outcome.addIssue()
+                .setSeverity(OperationOutcome.IssueSeverity.ERROR)
+                .setCode(issueType)
+                .setDiagnostics(message);
 
-    private PatientFhirMapper.PatientData createMockPatient(String id) {
-        return new PatientFhirMapper.PatientData(
-                UUID.fromString(id),
-                "199001011234",
-                "Anna",
-                null,
-                "Andersson",
-                "FEMALE",
-                LocalDate.of(1990, 1, 1),
-                false,
-                false,
-                null,
-                "+46701234567",
-                "anna.andersson@email.se",
-                "Storgatan 1",
-                "Stockholm",
-                "11122",
-                "Stockholm"
-        );
+        HttpStatus status = switch (issueType) {
+            case NOTFOUND -> HttpStatus.NOT_FOUND;
+            case INVALID -> HttpStatus.BAD_REQUEST;
+            default -> HttpStatus.INTERNAL_SERVER_ERROR;
+        };
+
+        return ResponseEntity.status(status)
+                .contentType(FHIR_JSON)
+                .body(toJson(outcome));
     }
 
-    private PatientFhirMapper.PatientData createMockPatientByIdentifier(String identifier) {
-        // Remove system prefix if present
-        String personnummer = identifier.contains("|")
-                ? identifier.split("\\|")[1]
-                : identifier;
-
-        return new PatientFhirMapper.PatientData(
-                UUID.randomUUID(),
-                personnummer,
-                "Test",
-                null,
-                "Patient",
-                "UNKNOWN",
-                null,
-                false,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-        );
+    private String extractPersonnummer(String identifier) {
+        if (identifier.contains("|")) {
+            return identifier.split("\\|")[1];
+        }
+        return identifier;
     }
 
-    private EncounterFhirMapper.EncounterData createMockEncounter(String id) {
-        return new EncounterFhirMapper.EncounterData(
-                UUID.fromString(id),
-                UUID.randomUUID(),
-                "IN_PROGRESS",
-                "EMERGENCY",
-                "EMERGENCY_VISIT",
-                "Akutmottagning",
-                "URGENT",
-                Instant.now().minusSeconds(3600),
+    private UUID extractResourceId(String reference) {
+        try {
+            String id = reference.contains("/")
+                    ? reference.substring(reference.lastIndexOf('/') + 1)
+                    : reference;
+            return UUID.fromString(id);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private String mapFhirStatusToInternal(String fhirStatus) {
+        return switch (fhirStatus.toLowerCase()) {
+            case "planned" -> "PLANNED";
+            case "arrived" -> "ARRIVED";
+            case "triaged" -> "TRIAGED";
+            case "in-progress" -> "IN_PROGRESS";
+            case "onleave" -> "ON_HOLD";
+            case "finished" -> "FINISHED";
+            case "cancelled" -> "CANCELLED";
+            default -> fhirStatus.toUpperCase();
+        };
+    }
+
+    private String mapFhirClassToInternal(String fhirClass) {
+        return switch (fhirClass.toUpperCase()) {
+            case "IMP" -> "INPATIENT";
+            case "AMB" -> "OUTPATIENT";
+            case "EMER" -> "EMERGENCY";
+            case "HH" -> "HOME_VISIT";
+            case "VR" -> "VIRTUAL";
+            default -> fhirClass;
+        };
+    }
+
+    private String mapFhirCategoryToInternal(String fhirCategory) {
+        return switch (fhirCategory.toLowerCase()) {
+            case "vital-signs" -> "VITAL_SIGNS";
+            case "laboratory" -> "LABORATORY";
+            case "imaging" -> "IMAGING";
+            case "procedure" -> "PROCEDURE";
+            case "survey" -> "SURVEY";
+            case "exam" -> "EXAM";
+            case "therapy" -> "THERAPY";
+            case "activity" -> "ACTIVITY";
+            default -> fhirCategory.toUpperCase();
+        };
+    }
+
+    // ========== Mapping Methods ==========
+
+    private Patient mapToFhirPatient(PatientServiceClient.PatientResponse response) {
+        PatientFhirMapper.PatientData data = new PatientFhirMapper.PatientData(
+                response.id(),
+                response.personalIdentityNumber(),
+                response.givenName(),
+                response.middleName(),
+                response.familyName(),
+                response.gender(),
+                response.dateOfBirth(),
+                response.protectedIdentity(),
+                response.deceased(),
+                response.deceasedDate(),
+                null, null, null, null, null, null
+        );
+        return patientMapper.toFhir(data);
+    }
+
+    private Encounter mapToFhirEncounter(EncounterServiceClient.EncounterResponse response) {
+        EncounterFhirMapper.EncounterData data = new EncounterFhirMapper.EncounterData(
+                response.id(),
+                response.patientId(),
+                response.status(),
+                response.encounterClass(),
+                response.type(),
+                response.serviceType(),
+                response.priority(),
+                response.plannedStartTime(),
+                response.plannedEndTime(),
+                response.actualStartTime(),
+                response.actualEndTime(),
+                response.responsiblePractitionerHsaId(),
+                response.responsibleUnitHsaId(),
                 null,
-                Instant.now().minusSeconds(3500),
-                null,
-                "SE2321000016-1234",
-                "SE2321000016-AKUT",
-                null,
-                "ORANGE",
+                response.triageLevel(),
                 List.of(),
-                List.of("Bröstsmärta")
+                response.reasonCodes()
         );
+        return encounterMapper.toFhir(data);
     }
 
-    private List<Observation> createMockVitalSigns(UUID patientId) {
-        List<Observation> observations = new ArrayList<>();
-        UUID encounterId = UUID.randomUUID();
-        Instant now = Instant.now();
+    private Observation mapToFhirObservation(JournalServiceClient.ObservationResponse response) {
+        Observation observation = new Observation();
+        observation.setId(response.id().toString());
+        observation.setStatus(Observation.ObservationStatus.FINAL);
 
-        // Heart rate
-        observations.add(observationMapper.createVitalSign(
-                new ObservationFhirMapper.VitalSignData(
-                        UUID.randomUUID(), patientId, encounterId, null,
-                        "HEART_RATE", BigDecimal.valueOf(78), now)));
+        if (response.category() != null) {
+            CodeableConcept category = new CodeableConcept();
+            category.addCoding()
+                    .setSystem("http://terminology.hl7.org/CodeSystem/observation-category")
+                    .setCode(response.category().toLowerCase().replace("_", "-"));
+            observation.addCategory(category);
+        }
 
-        // Respiratory rate
-        observations.add(observationMapper.createVitalSign(
-                new ObservationFhirMapper.VitalSignData(
-                        UUID.randomUUID(), patientId, encounterId, null,
-                        "RESPIRATORY_RATE", BigDecimal.valueOf(16), now)));
+        CodeableConcept code = new CodeableConcept();
+        if (response.codeSystem() != null && response.code() != null) {
+            code.addCoding()
+                    .setSystem(response.codeSystem())
+                    .setCode(response.code())
+                    .setDisplay(response.displayText());
+        }
+        observation.setCode(code);
 
-        // Temperature
-        observations.add(observationMapper.createVitalSign(
-                new ObservationFhirMapper.VitalSignData(
-                        UUID.randomUUID(), patientId, encounterId, null,
-                        "BODY_TEMPERATURE", BigDecimal.valueOf(37.2), now)));
+        if (response.patientId() != null) {
+            observation.setSubject(new Reference("Patient/" + response.patientId()));
+        }
 
-        // SpO2
-        observations.add(observationMapper.createVitalSign(
-                new ObservationFhirMapper.VitalSignData(
-                        UUID.randomUUID(), patientId, encounterId, null,
-                        "OXYGEN_SATURATION", BigDecimal.valueOf(98), now)));
+        if (response.encounterId() != null) {
+            observation.setEncounter(new Reference("Encounter/" + response.encounterId()));
+        }
 
-        // Blood pressure
-        observations.add(observationMapper.createBloodPressure(
-                UUID.randomUUID(), patientId, encounterId,
-                BigDecimal.valueOf(125), BigDecimal.valueOf(82),
-                now, null));
+        if (response.valueNumeric() != null) {
+            Quantity quantity = new Quantity();
+            quantity.setValue(response.valueNumeric());
+            if (response.unit() != null) {
+                quantity.setUnit(response.unit());
+            }
+            observation.setValue(quantity);
+        } else if (response.valueString() != null) {
+            observation.setValue(new StringType(response.valueString()));
+        } else if (response.valueBoolean() != null) {
+            observation.setValue(new BooleanType(response.valueBoolean()));
+        }
 
-        return observations;
+        if (response.referenceRangeLow() != null || response.referenceRangeHigh() != null) {
+            Observation.ObservationReferenceRangeComponent range = observation.addReferenceRange();
+            if (response.referenceRangeLow() != null) {
+                range.setLow(new Quantity().setValue(response.referenceRangeLow()));
+            }
+            if (response.referenceRangeHigh() != null) {
+                range.setHigh(new Quantity().setValue(response.referenceRangeHigh()));
+            }
+        }
+
+        if (response.observedAt() != null) {
+            observation.setEffective(new DateTimeType(
+                    Date.from(response.observedAt().atZone(ZoneId.systemDefault()).toInstant())));
+        }
+
+        if (response.interpretation() != null) {
+            CodeableConcept interpretation = new CodeableConcept();
+            interpretation.addCoding()
+                    .setSystem("http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation")
+                    .setCode(response.interpretation());
+            observation.addInterpretation(interpretation);
+        }
+
+        return observation;
+    }
+
+    private Condition mapToFhirCondition(JournalServiceClient.DiagnosisResponse response) {
+        // Map diagnosis type to clinical status
+        String clinicalStatus = response.resolvedDate() != null ? "resolved" : "active";
+
+        // Map diagnosis type to verification status
+        String verificationStatus = "confirmed";
+
+        // Map type to category
+        String category = "encounter-diagnosis";
+        if ("PROBLEM".equalsIgnoreCase(response.type())) {
+            category = "problem-list-item";
+        }
+
+        ConditionFhirMapper.ConditionData data = new ConditionFhirMapper.ConditionData(
+                response.id(),
+                response.patientId(),
+                response.encounterId(),
+                clinicalStatus,
+                verificationStatus,
+                category,
+                null, // severity
+                response.codeSystem(),
+                response.code(),
+                response.displayText(),
+                response.onsetDate(),
+                null, // onsetString
+                response.resolvedDate(),
+                null, // bodySite
+                response.recordedAt(),
+                response.recordedById(),
+                response.recordedById(), // asserterId same as recordedById
+                null, // evidenceCode
+                null, // note
+                null, // laterality
+                response.rank() != null && response.rank() == 1 // isPrimary
+        );
+        return conditionMapper.toFhir(data);
     }
 }
