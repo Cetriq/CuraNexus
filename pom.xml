@@ -24,6 +24,7 @@
         <module>modules/integration</module>
         <module>modules/notification</module>
         <module>modules/booking</module>
+        <module>modules/medication</module>
     </modules>
 
     <properties>
