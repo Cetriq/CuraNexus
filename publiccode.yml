@@ -1,7 +1,7 @@
 publiccodeYmlVersion: "0.3"
 name: CuraNexus
 url: https://github.com/Cetriq/CuraNexus
-releaseDate: 2026-04-02
+releaseDate: 2026-04-03
 softwareVersion: 0.1.0
 platforms:
   - web
@@ -12,18 +12,20 @@ categories:
   - workflow-management
   - data-analytics
   - compliance-management
+  - identity-management
+  - document-management
 developmentStatus: development
 softwareType: standalone/web
 description:
   sv:
-    shortDescription: Modulär svenskanpassad vårdgivarplattform för hantering av patientdata och vårdprocesser
-    longDescription: CuraNexus är en komplett vårdgivarplattform byggd för svenska vårdgivare med stöd för patientidentitet, vårdmöten, klinisk dokumentation, triagering enligt RETTS, samt PDL-kompatibel auditloggning.
+    shortDescription: Modulär vårdgivandeplattform för svenska sjukvården med stöd för 100 000+ användare
+    longDescription: CuraNexus är en processdriven vårdplattform som följer principen att vårdprocessen är primär och journalen är en biprodukt. Plattformen erbjuder patienthantering, vårdmöten, klinisk dokumentation, triagering, medicinska förskrivningar och fullständig spårbarhet enligt PDL-krav.
     features:
-      - Patientidentitetshantering
+      - Personnummer-baserad patienthantering med skyddad identitet
       - RETTS-inspirerat triagesystem
-      - PDL-kompatibel auditloggning
-      - FHIR R4-stöd via HAPI FHIR
-      - Modulär arkitektur med mikrotjänster
+      - FHIR R4-kompatibilitet med svenska tillägg
+      - Fullständig revision och PDL-efterlevnad
+      - Modulär arkitektur med händelsedriven kommunikation
 legal:
   license: EUPL-1.2
   repoOwner: Cetriq
@@ -42,12 +44,16 @@ x-samhallskodex:
   architecture:
     ui:
       platform: api
+      framework: React
     backend:
       architecture: container
       runtime: Java
   integration:
     apiStyles:
       - rest
+    identity:
+      - oauth2
+      - jwt
   ai:
     enabled: false
   governance:
