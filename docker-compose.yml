@@ -474,6 +474,34 @@ services:
       - curanexus-network
 
   # =============================================================================
+  # Frontend
+  # =============================================================================
+  frontend:
+    image: curanexus/frontend:latest
+    container_name: curanexus-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:80"
+    depends_on:
+      - patient
+      - care-encounter
+      - journal
+      - task
+      - booking
+      - medication
+      - referral
+      - lab
+    networks:
+      - curanexus-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =============================================================================
   # Development Tools
   # =============================================================================
   pgadmin:
