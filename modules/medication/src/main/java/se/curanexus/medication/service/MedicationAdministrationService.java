@@ -122,7 +122,7 @@ public class MedicationAdministrationService {
      */
     @Transactional(readOnly = true)
     public List<MedicationAdministrationDto> getPrescriptionAdministrations(UUID prescriptionId) {
-        return administrationRepository.findByPrescriptionIdOrderByAdministeredAtDesc(prescriptionId)
+        return administrationRepository.findByPrescription_IdOrderByAdministeredAtDesc(prescriptionId)
                 .stream()
                 .map(MedicationAdministrationDto::from)
                 .toList();

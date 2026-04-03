@@ -16,7 +16,7 @@ public interface MedicationAdministrationRepository extends JpaRepository<Medica
 
     List<MedicationAdministration> findByPatientIdOrderByAdministeredAtDesc(UUID patientId);
 
-    List<MedicationAdministration> findByPrescriptionIdOrderByAdministeredAtDesc(UUID prescriptionId);
+    List<MedicationAdministration> findByPrescription_IdOrderByAdministeredAtDesc(UUID prescriptionId);
 
     List<MedicationAdministration> findByEncounterId(UUID encounterId);
 
@@ -51,7 +51,7 @@ public interface MedicationAdministrationRepository extends JpaRepository<Medica
     List<MedicationAdministration> findByPerformerIdOrderByAdministeredAtDesc(UUID performerId);
 
     @Query("SELECT COUNT(ma) FROM MedicationAdministration ma " +
-            "WHERE ma.prescriptionId = :prescriptionId " +
+            "WHERE ma.prescription.id = :prescriptionId " +
             "AND ma.status = 'COMPLETED'")
     long countCompletedByPrescription(@Param("prescriptionId") UUID prescriptionId);
 

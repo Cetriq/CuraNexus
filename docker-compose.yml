@@ -33,6 +33,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    command: postgres -c max_connections=200
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
@@ -61,8 +62,9 @@ services:
       SPRING_DATASOURCE_URL: ${CURANEXUS_DB_URL:-jdbc:postgresql://postgres:5432/curanexus}
       SPRING_DATASOURCE_USERNAME: ${CURANEXUS_DB_USERNAME:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${CURANEXUS_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_TABLE: flyway_schema_history_patient
       SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
-      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SERVER_PORT: 8080
     ports:
@@ -88,14 +90,15 @@ services:
       SPRING_DATASOURCE_URL: ${CURANEXUS_DB_URL:-jdbc:postgresql://postgres:5432/curanexus}
       SPRING_DATASOURCE_USERNAME: ${CURANEXUS_DB_USERNAME:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${CURANEXUS_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_TABLE: flyway_schema_history_encounter
       SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
-      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SERVER_PORT: 8081
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USER: ${RABBITMQ_USER:-curanexus}
-      RABBITMQ_PASS: ${RABBITMQ_PASS:-curanexus}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-curanexus}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-curanexus}
     ports:
       - "8081:8081"
     depends_on:
@@ -121,14 +124,15 @@ services:
       SPRING_DATASOURCE_URL: ${CURANEXUS_DB_URL:-jdbc:postgresql://postgres:5432/curanexus}
       SPRING_DATASOURCE_USERNAME: ${CURANEXUS_DB_USERNAME:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${CURANEXUS_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_TABLE: flyway_schema_history_journal
       SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
-      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SERVER_PORT: 8082
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USER: ${RABBITMQ_USER:-curanexus}
-      RABBITMQ_PASS: ${RABBITMQ_PASS:-curanexus}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-curanexus}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-curanexus}
     ports:
       - "8082:8082"
     depends_on:
@@ -154,14 +158,15 @@ services:
       SPRING_DATASOURCE_URL: ${CURANEXUS_DB_URL:-jdbc:postgresql://postgres:5432/curanexus}
       SPRING_DATASOURCE_USERNAME: ${CURANEXUS_DB_USERNAME:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${CURANEXUS_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_TABLE: flyway_schema_history_task
       SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
-      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SERVER_PORT: 8083
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USER: ${RABBITMQ_USER:-curanexus}
-      RABBITMQ_PASS: ${RABBITMQ_PASS:-curanexus}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-curanexus}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-curanexus}
     ports:
       - "8083:8083"
     depends_on:
@@ -187,8 +192,9 @@ services:
       SPRING_DATASOURCE_URL: ${CURANEXUS_DB_URL:-jdbc:postgresql://postgres:5432/curanexus}
       SPRING_DATASOURCE_USERNAME: ${CURANEXUS_DB_USERNAME:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${CURANEXUS_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_TABLE: flyway_schema_history_authorization
       SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
-      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SERVER_PORT: 8084
     ports:
@@ -214,8 +220,9 @@ services:
       SPRING_DATASOURCE_URL: ${AUDIT_DB_URL:-jdbc:postgresql://postgres:5432/curanexus_audit}
       SPRING_DATASOURCE_USERNAME: ${AUDIT_DB_USERNAME:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${AUDIT_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_TABLE: flyway_schema_history_audit
       SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
-      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SERVER_PORT: 8086
     ports:
@@ -241,8 +248,9 @@ services:
       SPRING_DATASOURCE_URL: ${TRIAGE_DB_URL:-jdbc:postgresql://postgres:5432/curanexus_triage}
       SPRING_DATASOURCE_USERNAME: ${TRIAGE_DB_USERNAME:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${TRIAGE_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_TABLE: flyway_schema_history_triage
       SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
-      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SERVER_PORT: 8087
     ports:
@@ -268,17 +276,154 @@ services:
       SPRING_DATASOURCE_URL: ${CURANEXUS_DB_URL:-jdbc:postgresql://postgres:5432/curanexus}
       SPRING_DATASOURCE_USERNAME: ${CURANEXUS_DB_USERNAME:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${CURANEXUS_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_TABLE: flyway_schema_history_notification
       SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
-      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SERVER_PORT: 8088
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USER: ${RABBITMQ_USER:-curanexus}
-      RABBITMQ_PASS: ${RABBITMQ_PASS:-curanexus}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-curanexus}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-curanexus}
       CURANEXUS_ADMIN_API_KEY: ${CURANEXUS_ADMIN_API_KEY:-}
     ports:
       - "8088:8088"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - curanexus-network
+
+  # =============================================================================
+  # A5 - Booking Module
+  # =============================================================================
+  booking:
+    image: curanexus/booking:latest
+    container_name: curanexus-booking
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: booking
+    environment:
+      SPRING_DATASOURCE_URL: ${CURANEXUS_DB_URL:-jdbc:postgresql://postgres:5432/curanexus}
+      SPRING_DATASOURCE_USERNAME: ${CURANEXUS_DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${CURANEXUS_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_TABLE: flyway_schema_history_booking
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8089
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-curanexus}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-curanexus}
+    ports:
+      - "8089:8089"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - curanexus-network
+
+  # =============================================================================
+  # A6 - Medication Module
+  # =============================================================================
+  medication:
+    image: curanexus/medication:latest
+    container_name: curanexus-medication
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: medication
+    environment:
+      SPRING_DATASOURCE_URL: ${CURANEXUS_DB_URL:-jdbc:postgresql://postgres:5432/curanexus}
+      SPRING_DATASOURCE_USERNAME: ${CURANEXUS_DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${CURANEXUS_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_TABLE: flyway_schema_history_medication
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8090
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-curanexus}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-curanexus}
+    ports:
+      - "8090:8090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - curanexus-network
+
+  # =============================================================================
+  # A7 - Referral Module
+  # =============================================================================
+  referral:
+    image: curanexus/referral:latest
+    container_name: curanexus-referral
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: referral
+    environment:
+      SPRING_DATASOURCE_URL: ${CURANEXUS_DB_URL:-jdbc:postgresql://postgres:5432/curanexus}
+      SPRING_DATASOURCE_USERNAME: ${CURANEXUS_DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${CURANEXUS_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_TABLE: flyway_schema_history_referral
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8091
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-curanexus}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-curanexus}
+    ports:
+      - "8091:8091"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - curanexus-network
+
+  # =============================================================================
+  # A8 - Lab Module
+  # =============================================================================
+  lab:
+    image: curanexus/lab:latest
+    container_name: curanexus-lab
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: lab
+    environment:
+      SPRING_DATASOURCE_URL: ${CURANEXUS_DB_URL:-jdbc:postgresql://postgres:5432/curanexus}
+      SPRING_DATASOURCE_USERNAME: ${CURANEXUS_DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${CURANEXUS_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_TABLE: flyway_schema_history_lab
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8092
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-curanexus}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-curanexus}
+    ports:
+      - "8092:8092"
     depends_on:
       postgres:
         condition: service_healthy
@@ -306,6 +451,10 @@ services:
       TASK_SERVICE_URL: ${TASK_SERVICE_URL:-http://task:8083}
       AUTHORIZATION_SERVICE_URL: ${AUTHORIZATION_SERVICE_URL:-http://authorization:8084}
       NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL:-http://notification:8088}
+      BOOKING_SERVICE_URL: ${BOOKING_SERVICE_URL:-http://booking:8089}
+      MEDICATION_SERVICE_URL: ${MEDICATION_SERVICE_URL:-http://medication:8090}
+      REFERRAL_SERVICE_URL: ${REFERRAL_SERVICE_URL:-http://referral:8091}
+      LAB_SERVICE_URL: ${LAB_SERVICE_URL:-http://lab:8092}
     ports:
       - "8085:8085"
     depends_on:
@@ -317,6 +466,10 @@ services:
       - audit
       - triage
       - notification
+      - booking
+      - medication
+      - referral
+      - lab
     networks:
       - curanexus-network
 
