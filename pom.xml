@@ -26,6 +26,7 @@
         <module>modules/booking</module>
         <module>modules/medication</module>
         <module>modules/referral</module>
+        <module>modules/lab</module>
     </modules>
 
     <properties>
