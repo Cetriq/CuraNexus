@@ -1,0 +1,56 @@
+# Multi-stage build for CuraNexus modules
+# Template - copy and customize for each module
+
+# Stage 1: Build
+FROM eclipse-temurin:21-jdk-alpine AS builder
+
+WORKDIR /build
+
+# Copy Maven wrapper and pom files
+COPY mvnw .
+COPY .mvn .mvn
+COPY pom.xml .
+
+# Copy all module pom files for dependency resolution
+COPY modules/events/pom.xml modules/events/
+COPY modules/MODULE_NAME/pom.xml modules/MODULE_NAME/
+
+# Download dependencies (cached layer)
+RUN chmod +x mvnw && \
+    ./mvnw dependency:go-offline -pl modules/events,modules/MODULE_NAME -am -q
+
+# Copy source code
+COPY modules/events/src modules/events/src
+COPY modules/MODULE_NAME/src modules/MODULE_NAME/src
+
+# Build the application
+RUN ./mvnw package -pl modules/events,modules/MODULE_NAME -am -DskipTests -q
+
+# Stage 2: Runtime
+FROM eclipse-temurin:21-jre-alpine
+
+WORKDIR /app
+
+# Add non-root user for security
+RUN addgroup -g 1001 -S curanexus && \
+    adduser -u 1001 -S curanexus -G curanexus
+
+# Copy the built JAR
+COPY --from=builder /build/modules/MODULE_NAME/target/*.jar app.jar
+
+# Set ownership
+RUN chown -R curanexus:curanexus /app
+
+USER curanexus
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD wget -q --spider http://localhost:PORT/actuator/health || exit 1
+
+# Expose port
+EXPOSE PORT
+
+# JVM options for containers
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
