@@ -122,6 +122,30 @@ public class TaskController {
         return ResponseEntity.ok(tasks.stream().map(TaskResponse::from).toList());
     }
 
+    @GetMapping("/encounters/{encounterId}/tasks/summary")
+    public ResponseEntity<TaskSummaryResponse> getEncounterTaskSummary(@PathVariable UUID encounterId) {
+        TaskService.TaskSummary summary = taskService.getTaskSummaryByEncounter(encounterId);
+
+        TaskSummaryResponse.TaskProgressDetails progressDetails = new TaskSummaryResponse.TaskProgressDetails(
+                summary.progress().blocked(),
+                summary.progress().inProgress(),
+                summary.progress().overdue(),
+                summary.progress().escalated(),
+                summary.progress().completionPercentage(),
+                summary.progress().nextDueAt(),
+                summary.progress().overdueTaskTitles(),
+                summary.progress().blockedTaskTitles()
+        );
+
+        return ResponseEntity.ok(new TaskSummaryResponse(
+                summary.total(),
+                summary.completed(),
+                summary.pending(),
+                summary.pendingTaskTitles(),
+                progressDetails
+        ));
+    }
+
     @GetMapping("/patients/{patientId}/tasks")
     public ResponseEntity<List<TaskResponse>> getPatientTasks(@PathVariable UUID patientId) {
         List<Task> tasks = taskService.getTasksByPatient(patientId);

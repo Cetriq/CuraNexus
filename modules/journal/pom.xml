@@ -16,6 +16,13 @@
     <description>Medical documentation module (A3) - Output from care flow</description>
 
     <dependencies>
+        <!-- Events Library -->
+        <dependency>
+            <groupId>se.curanexus</groupId>
+            <artifactId>curanexus-events</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

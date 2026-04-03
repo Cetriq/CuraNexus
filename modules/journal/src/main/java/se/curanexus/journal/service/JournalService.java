@@ -2,6 +2,9 @@ package se.curanexus.journal.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import se.curanexus.events.DomainEventPublisher;
+import se.curanexus.events.journal.NoteCreatedEvent;
+import se.curanexus.events.journal.NoteSignedEvent;
 import se.curanexus.journal.domain.*;
 import se.curanexus.journal.repository.*;
 import se.curanexus.journal.service.exception.*;
@@ -20,15 +23,18 @@ public class JournalService {
     private final DiagnosisRepository diagnosisRepository;
     private final ProcedureRepository procedureRepository;
     private final ObservationRepository observationRepository;
+    private final DomainEventPublisher eventPublisher;
 
     public JournalService(ClinicalNoteRepository noteRepository,
                           DiagnosisRepository diagnosisRepository,
                           ProcedureRepository procedureRepository,
-                          ObservationRepository observationRepository) {
+                          ObservationRepository observationRepository,
+                          DomainEventPublisher eventPublisher) {
         this.noteRepository = noteRepository;
         this.diagnosisRepository = diagnosisRepository;
         this.procedureRepository = procedureRepository;
         this.observationRepository = observationRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     // === Clinical Notes ===
@@ -38,7 +44,21 @@ public class JournalService {
         ClinicalNote note = new ClinicalNote(encounterId, patientId, type, authorId, authorName);
         note.setTitle(title);
         note.setContent(content);
-        return noteRepository.save(note);
+        ClinicalNote saved = noteRepository.save(note);
+
+        // Publish event
+        eventPublisher.publish(new NoteCreatedEvent(
+                this,
+                saved.getId(),
+                saved.getEncounterId(),
+                saved.getPatientId(),
+                saved.getType().name(),
+                saved.getAuthorId(),
+                saved.getAuthorName(),
+                saved.getTitle()
+        ));
+
+        return saved;
     }
 
     @Transactional(readOnly = true)
@@ -51,6 +71,42 @@ public class JournalService {
     public List<ClinicalNote> getNotesByEncounter(UUID encounterId) {
         return noteRepository.findByEncounterIdOrderByCreatedAtDesc(encounterId);
     }
+
+    /**
+     * Get note summary statistics for an encounter.
+     */
+    @Transactional(readOnly = true)
+    public NoteSummary getNoteSummaryByEncounter(UUID encounterId) {
+        List<ClinicalNote> notes = noteRepository.findByEncounterIdOrderByCreatedAtDesc(encounterId);
+
+        int total = notes.size();
+        int signed = 0;
+        int unsigned = 0;
+        List<String> unsignedTitles = new java.util.ArrayList<>();
+
+        for (ClinicalNote note : notes) {
+            if (note.getStatus() == NoteStatus.CANCELLED) {
+                continue; // Skip cancelled notes
+            }
+            if (note.getStatus() == NoteStatus.FINAL || note.getStatus() == NoteStatus.AMENDED) {
+                signed++;
+            } else if (note.getStatus() == NoteStatus.DRAFT) {
+                unsigned++;
+                if (unsignedTitles.size() < 5) {
+                    unsignedTitles.add(note.getTitle() != null ? note.getTitle() : "Untitled note");
+                }
+            }
+        }
+
+        return new NoteSummary(total, signed, unsigned, unsignedTitles);
+    }
+
+    public record NoteSummary(
+            int total,
+            int signed,
+            int unsigned,
+            List<String> unsignedNoteTitles
+    ) {}
 
     @Transactional(readOnly = true)
     public List<ClinicalNote> getNotesByPatient(UUID patientId) {
@@ -73,7 +129,20 @@ public class JournalService {
             throw new InvalidNoteStateException(noteId, note.getStatus(), "sign");
         }
         note.sign(signedById, signedByName);
-        return noteRepository.save(note);
+        ClinicalNote saved = noteRepository.save(note);
+
+        // Publish event
+        eventPublisher.publish(new NoteSignedEvent(
+                this,
+                saved.getId(),
+                saved.getEncounterId(),
+                saved.getPatientId(),
+                signedById,
+                signedByName,
+                saved.getSignedAt()
+        ));
+
+        return saved;
     }
 
     public ClinicalNote amendNote(UUID noteId, String newContent) {

@@ -16,6 +16,13 @@
     <description>B1 - Task and workflow execution module (Uppgifts- och arbetsflödesmodul)</description>
 
     <dependencies>
+        <!-- Events Library -->
+        <dependency>
+            <groupId>se.curanexus</groupId>
+            <artifactId>curanexus-events</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

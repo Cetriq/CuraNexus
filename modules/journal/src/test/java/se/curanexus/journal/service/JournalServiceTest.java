@@ -6,6 +6,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import se.curanexus.events.DomainEventPublisher;
 import se.curanexus.journal.domain.*;
 import se.curanexus.journal.repository.*;
 import se.curanexus.journal.service.exception.*;
@@ -35,6 +36,9 @@ class JournalServiceTest {
 
     @Mock
     private ObservationRepository observationRepository;
+
+    @Mock
+    private DomainEventPublisher eventPublisher;
 
     @InjectMocks
     private JournalService journalService;

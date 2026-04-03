@@ -6,6 +6,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import se.curanexus.events.DomainEventPublisher;
 import se.curanexus.task.domain.*;
 import se.curanexus.task.repository.*;
 import se.curanexus.task.service.exception.*;
@@ -32,6 +33,9 @@ class TaskServiceTest {
 
     @Mock
     private WatchRepository watchRepository;
+
+    @Mock
+    private DomainEventPublisher eventPublisher;
 
     @InjectMocks
     private TaskService taskService;

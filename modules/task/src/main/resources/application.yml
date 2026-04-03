@@ -1,6 +1,19 @@
 spring:
   application:
     name: task-module
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:curanexus}
+    password: ${RABBITMQ_PASS:curanexus}
+    connection-timeout: 30000
+    template:
+      retry:
+        enabled: true
+        initial-interval: 1000
+        max-attempts: 3
+        max-interval: 10000
+        multiplier: 2.0
   datasource:
     url: jdbc:postgresql://localhost:5432/curanexus
     username: curanexus

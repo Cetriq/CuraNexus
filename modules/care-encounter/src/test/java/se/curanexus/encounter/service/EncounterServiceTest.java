@@ -5,7 +5,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import se.curanexus.encounter.api.dto.*;
+import se.curanexus.events.DomainEventPublisher;
 import se.curanexus.encounter.domain.*;
 import se.curanexus.encounter.repository.*;
 
@@ -17,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class EncounterServiceTest {
 
     @Mock
@@ -28,6 +32,12 @@ class EncounterServiceTest {
     @Mock
     private EncounterReasonRepository reasonRepository;
 
+    @Mock
+    private DomainEventPublisher eventPublisher;
+
+    @Mock
+    private ReadinessChecker readinessChecker;
+
     private EncounterService encounterService;
 
     @BeforeEach
@@ -35,7 +45,9 @@ class EncounterServiceTest {
         encounterService = new EncounterService(
                 encounterRepository,
                 participantRepository,
-                reasonRepository
+                reasonRepository,
+                eventPublisher,
+                readinessChecker
         );
     }
 

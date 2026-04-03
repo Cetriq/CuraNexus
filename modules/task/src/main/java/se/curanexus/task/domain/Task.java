@@ -55,6 +55,21 @@ public class Task {
     @Column(name = "source_id")
     private UUID sourceId;
 
+    @Column(name = "depends_on_task_id")
+    private UUID dependsOnTaskId;
+
+    @Column(name = "template_id")
+    private UUID templateId;
+
+    @Column(name = "escalated")
+    private boolean escalated = false;
+
+    @Column(name = "escalated_at")
+    private Instant escalatedAt;
+
+    @Column(name = "escalation_level")
+    private int escalationLevel = 0;
+
     @Column(name = "due_at")
     private LocalDateTime dueAt;
 
@@ -102,6 +117,9 @@ public class Task {
     }
 
     public void start() {
+        if (this.status == TaskStatus.BLOCKED) {
+            throw new IllegalStateException("Task is blocked by a dependency and cannot be started");
+        }
         if (this.status != TaskStatus.ASSIGNED && this.status != TaskStatus.PENDING) {
             throw new IllegalStateException("Task can only be started from PENDING or ASSIGNED status");
         }
@@ -154,6 +172,49 @@ public class Task {
                LocalDateTime.now().isAfter(dueAt) &&
                status != TaskStatus.COMPLETED &&
                status != TaskStatus.CANCELLED;
+    }
+
+    public boolean hasDependency() {
+        return dependsOnTaskId != null;
+    }
+
+    public void escalate() {
+        if (this.status == TaskStatus.COMPLETED || this.status == TaskStatus.CANCELLED) {
+            throw new IllegalStateException("Cannot escalate a " + status + " task");
+        }
+        this.escalated = true;
+        this.escalatedAt = Instant.now();
+        this.escalationLevel++;
+        this.updatedAt = Instant.now();
+    }
+
+    public UUID getDependsOnTaskId() {
+        return dependsOnTaskId;
+    }
+
+    public void setDependsOnTaskId(UUID dependsOnTaskId) {
+        this.dependsOnTaskId = dependsOnTaskId;
+        this.updatedAt = Instant.now();
+    }
+
+    public UUID getTemplateId() {
+        return templateId;
+    }
+
+    public void setTemplateId(UUID templateId) {
+        this.templateId = templateId;
+    }
+
+    public boolean isEscalated() {
+        return escalated;
+    }
+
+    public Instant getEscalatedAt() {
+        return escalatedAt;
+    }
+
+    public int getEscalationLevel() {
+        return escalationLevel;
     }
 
     // Getters and setters

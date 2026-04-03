@@ -35,3 +35,9 @@ failsafe-reports/
 
 # Docker
 docker-compose.override.yml
+
+# Session files (development)
+summary.md
+resume-prompt.md
+ledger.json
+review.md

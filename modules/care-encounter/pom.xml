@@ -16,6 +16,13 @@
     <description>Care encounter and case management (A2) - The system hub</description>
 
     <dependencies>
+        <!-- Events Library -->
+        <dependency>
+            <groupId>se.curanexus</groupId>
+            <artifactId>curanexus-events</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -2,6 +2,9 @@ package se.curanexus.task.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import se.curanexus.events.DomainEventPublisher;
+import se.curanexus.events.task.TaskCompletedEvent;
+import se.curanexus.events.task.TaskCreatedEvent;
 import se.curanexus.task.domain.*;
 import se.curanexus.task.repository.*;
 import se.curanexus.task.service.exception.*;
@@ -18,15 +21,18 @@ public class TaskService {
     private final ReminderRepository reminderRepository;
     private final DelegationRepository delegationRepository;
     private final WatchRepository watchRepository;
+    private final DomainEventPublisher eventPublisher;
 
     public TaskService(TaskRepository taskRepository,
                        ReminderRepository reminderRepository,
                        DelegationRepository delegationRepository,
-                       WatchRepository watchRepository) {
+                       WatchRepository watchRepository,
+                       DomainEventPublisher eventPublisher) {
         this.taskRepository = taskRepository;
         this.reminderRepository = reminderRepository;
         this.delegationRepository = delegationRepository;
         this.watchRepository = watchRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     // === Tasks ===
@@ -46,7 +52,23 @@ public class TaskService {
             task.assign(assigneeId);
         }
 
-        return taskRepository.save(task);
+        Task saved = taskRepository.save(task);
+
+        // Publish event
+        eventPublisher.publish(new TaskCreatedEvent(
+                this,
+                saved.getId(),
+                saved.getTitle(),
+                saved.getCategory().name(),
+                saved.getPriority().name(),
+                saved.getCreatedById(),
+                saved.getPatientId(),
+                saved.getEncounterId(),
+                saved.getAssigneeId(),
+                saved.getDueAt()
+        ));
+
+        return saved;
     }
 
     @Transactional(readOnly = true)
@@ -73,6 +95,106 @@ public class TaskService {
     @Transactional(readOnly = true)
     public List<Task> getTasksByEncounter(UUID encounterId) {
         return taskRepository.findByEncounterIdOrderByCreatedAtDesc(encounterId);
+    }
+
+    /**
+     * Get task summary statistics for an encounter.
+     */
+    @Transactional(readOnly = true)
+    public TaskSummary getTaskSummaryByEncounter(UUID encounterId) {
+        List<Task> tasks = taskRepository.findByEncounterIdOrderByCreatedAtDesc(encounterId);
+
+        int total = tasks.size();
+        int completed = 0;
+        int pending = 0;
+        int blocked = 0;
+        int inProgress = 0;
+        int overdue = 0;
+        int escalated = 0;
+        LocalDateTime nextDueAt = null;
+
+        List<String> pendingTitles = new java.util.ArrayList<>();
+        List<String> overdueTitles = new java.util.ArrayList<>();
+        List<String> blockedTitles = new java.util.ArrayList<>();
+
+        for (Task task : tasks) {
+            if (task.getStatus() == TaskStatus.COMPLETED || task.getStatus() == TaskStatus.CANCELLED) {
+                completed++;
+            } else {
+                pending++;
+                if (pendingTitles.size() < 5) {
+                    pendingTitles.add(task.getTitle());
+                }
+
+                // Track status breakdown
+                if (task.getStatus() == TaskStatus.BLOCKED) {
+                    blocked++;
+                    if (blockedTitles.size() < 3) {
+                        blockedTitles.add(task.getTitle());
+                    }
+                } else if (task.getStatus() == TaskStatus.IN_PROGRESS) {
+                    inProgress++;
+                }
+
+                // Track overdue
+                if (task.isOverdue()) {
+                    overdue++;
+                    if (overdueTitles.size() < 3) {
+                        overdueTitles.add(task.getTitle());
+                    }
+                }
+
+                // Track escalated
+                if (task.isEscalated()) {
+                    escalated++;
+                }
+
+                // Track next due date
+                if (task.getDueAt() != null) {
+                    if (nextDueAt == null || task.getDueAt().isBefore(nextDueAt)) {
+                        nextDueAt = task.getDueAt();
+                    }
+                }
+            }
+        }
+
+        double completionPercentage = total > 0 ? (completed * 100.0 / total) : 100.0;
+
+        TaskProgressDetails progress = new TaskProgressDetails(
+                blocked, inProgress, overdue, escalated,
+                completionPercentage, nextDueAt,
+                overdueTitles, blockedTitles
+        );
+
+        return new TaskSummary(total, completed, pending, pendingTitles, progress);
+    }
+
+    public record TaskSummary(
+            int total,
+            int completed,
+            int pending,
+            List<String> pendingTaskTitles,
+            TaskProgressDetails progress
+    ) {
+        // Constructor for backward compatibility
+        public TaskSummary(int total, int completed, int pending, List<String> pendingTaskTitles) {
+            this(total, completed, pending, pendingTaskTitles, TaskProgressDetails.empty());
+        }
+    }
+
+    public record TaskProgressDetails(
+            int blocked,
+            int inProgress,
+            int overdue,
+            int escalated,
+            double completionPercentage,
+            LocalDateTime nextDueAt,
+            List<String> overdueTaskTitles,
+            List<String> blockedTaskTitles
+    ) {
+        public static TaskProgressDetails empty() {
+            return new TaskProgressDetails(0, 0, 0, 0, 100.0, null, List.of(), List.of());
+        }
     }
 
     @Transactional(readOnly = true)
@@ -110,7 +232,109 @@ public class TaskService {
     public Task completeTask(UUID taskId, String completionNote, String outcome) {
         Task task = getTask(taskId);
         task.complete(completionNote, outcome);
-        return taskRepository.save(task);
+        Task saved = taskRepository.save(task);
+
+        // Unblock dependent tasks
+        unblockDependentTasks(saved.getId());
+
+        // Publish event
+        eventPublisher.publish(new TaskCompletedEvent(
+                this,
+                saved.getId(),
+                saved.getPatientId(),
+                saved.getEncounterId(),
+                null, // completedById would come from security context
+                completionNote
+        ));
+
+        return saved;
+    }
+
+    /**
+     * Unblock all tasks that were waiting for this task to complete.
+     */
+    private void unblockDependentTasks(UUID completedTaskId) {
+        List<Task> dependentTasks = taskRepository.findBlockedDependentTasks(completedTaskId);
+        for (Task dependent : dependentTasks) {
+            dependent.unblock();
+            taskRepository.save(dependent);
+        }
+    }
+
+    /**
+     * Create a task with dependency and due date support.
+     */
+    public Task createTaskWithDependency(String title, TaskCategory category, TaskPriority priority,
+                                          UUID createdById, UUID patientId, UUID encounterId,
+                                          UUID assigneeId, LocalDateTime dueAt,
+                                          String sourceType, UUID sourceId,
+                                          UUID dependsOnTaskId, UUID templateId) {
+        Task task = new Task(title, category, priority, createdById);
+        task.setPatientId(patientId);
+        task.setEncounterId(encounterId);
+        task.setDueAt(dueAt);
+        task.setSourceType(sourceType);
+        task.setSourceId(sourceId);
+        task.setDependsOnTaskId(dependsOnTaskId);
+        task.setTemplateId(templateId);
+
+        // If there's a dependency that's not completed, block this task
+        if (dependsOnTaskId != null) {
+            Task dependency = taskRepository.findById(dependsOnTaskId).orElse(null);
+            if (dependency != null && dependency.getStatus() != TaskStatus.COMPLETED) {
+                task.block();
+            }
+        }
+
+        if (assigneeId != null && task.getStatus() != TaskStatus.BLOCKED) {
+            task.assign(assigneeId);
+        }
+
+        Task saved = taskRepository.save(task);
+
+        // Publish event
+        eventPublisher.publish(new TaskCreatedEvent(
+                this,
+                saved.getId(),
+                saved.getTitle(),
+                saved.getCategory().name(),
+                saved.getPriority().name(),
+                saved.getCreatedById(),
+                saved.getPatientId(),
+                saved.getEncounterId(),
+                saved.getAssigneeId(),
+                saved.getDueAt()
+        ));
+
+        return saved;
+    }
+
+    /**
+     * Get tasks that depend on a given task.
+     */
+    @Transactional(readOnly = true)
+    public List<Task> getDependentTasks(UUID taskId) {
+        return taskRepository.findDependentTasks(taskId);
+    }
+
+    /**
+     * Get blocked tasks for an encounter.
+     */
+    @Transactional(readOnly = true)
+    public List<Task> getBlockedTasksByEncounter(UUID encounterId) {
+        return taskRepository.findBlockedByEncounter(encounterId);
+    }
+
+    /**
+     * Escalate overdue tasks that haven't been escalated yet.
+     */
+    public int escalateOverdueTasks() {
+        List<Task> overdue = taskRepository.findOverdueNotEscalated(LocalDateTime.now());
+        for (Task task : overdue) {
+            task.escalate();
+            taskRepository.save(task);
+        }
+        return overdue.size();
     }
 
     public Task cancelTask(UUID taskId, String reason) {

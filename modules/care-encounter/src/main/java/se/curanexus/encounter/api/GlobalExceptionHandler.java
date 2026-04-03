@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import se.curanexus.encounter.service.EncounterNotFoundException;
+import se.curanexus.encounter.service.EncounterNotReadyException;
 import se.curanexus.encounter.service.InvalidStatusTransitionException;
 import se.curanexus.encounter.service.ResourceNotFoundException;
 
@@ -54,6 +55,23 @@ public class GlobalExceptionHandler {
                 null
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(EncounterNotReadyException.class)
+    public ResponseEntity<ErrorResponse> handleEncounterNotReady(EncounterNotReadyException ex, WebRequest request) {
+        List<FieldErrorDetail> blockers = ex.getBlockers().stream()
+                .map(blocker -> new FieldErrorDetail("blocker", blocker))
+                .toList();
+
+        ErrorResponse error = new ErrorResponse(
+                Instant.now(),
+                HttpStatus.CONFLICT.value(),
+                "Conflict",
+                ex.getMessage(),
+                request.getDescription(false).replace("uri=", ""),
+                blockers
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

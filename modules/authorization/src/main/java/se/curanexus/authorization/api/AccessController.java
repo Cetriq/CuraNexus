@@ -3,8 +3,10 @@ package se.curanexus.authorization.api;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import se.curanexus.authorization.api.dto.AccessCheckResponse;
-import se.curanexus.authorization.api.dto.CheckAccessRequest;
+import se.curanexus.authorization.abac.AccessContext;
+import se.curanexus.authorization.abac.AccessControlService;
+import se.curanexus.authorization.abac.AccessDecision;
+import se.curanexus.authorization.api.dto.*;
 import se.curanexus.authorization.service.AuthorizationService;
 
 import java.util.HashMap;
@@ -16,9 +18,12 @@ import java.util.UUID;
 public class AccessController {
 
     private final AuthorizationService authorizationService;
+    private final AccessControlService accessControlService;
 
-    public AccessController(AuthorizationService authorizationService) {
+    public AccessController(AuthorizationService authorizationService,
+                           AccessControlService accessControlService) {
         this.authorizationService = authorizationService;
+        this.accessControlService = accessControlService;
     }
 
     @PostMapping("/check")
@@ -103,6 +108,74 @@ public class AccessController {
             return ResponseEntity.ok(AccessCheckResponse.accessGranted());
         } else {
             return ResponseEntity.ok(AccessCheckResponse.denied("Cannot access patient - missing permission or care relation"));
+        }
+    }
+
+    // ========== ABAC Endpoints ==========
+
+    /**
+     * Contextual access check using ABAC policies.
+     * This is the primary endpoint for access control in the system.
+     */
+    @PostMapping("/check/contextual")
+    public ResponseEntity<AccessDecisionResponse> checkContextualAccess(
+            @Valid @RequestBody ContextualAccessRequest request) {
+
+        AccessContext.Builder builder = AccessContext.builder()
+                .userId(request.userId())
+                .patientId(request.patientId())
+                .encounterId(request.encounterId())
+                .resourceType(request.resourceType())
+                .resourceId(request.resourceId())
+                .action(request.action())
+                .userType(request.userType())
+                .department(request.department())
+                .unit(request.unit())
+                .clientIp(request.clientIp())
+                .clientApplication(request.clientApplication());
+
+        if (request.emergencyAccess()) {
+            builder.emergencyAccess(true);
+            builder.accessReason(request.accessReason());
+        }
+
+        if (request.additionalAttributes() != null) {
+            request.additionalAttributes().forEach(builder::attribute);
+        }
+
+        AccessDecision decision = accessControlService.checkAccess(builder.build());
+        return ResponseEntity.ok(AccessDecisionResponse.from(decision));
+    }
+
+    /**
+     * Emergency access (nödåtkomst) - bypasses care relation but requires reason.
+     * All emergency access is specially logged.
+     */
+    @PostMapping("/emergency")
+    public ResponseEntity<AccessDecisionResponse> requestEmergencyAccess(
+            @Valid @RequestBody EmergencyAccessRequest request) {
+
+        AccessDecision decision = accessControlService.checkEmergencyAccess(
+                request.userId(),
+                request.patientId(),
+                request.reason()
+        );
+        return ResponseEntity.ok(AccessDecisionResponse.from(decision));
+    }
+
+    /**
+     * Quick check for patient access (optimized for performance).
+     */
+    @GetMapping("/check/patient/{patientId}")
+    public ResponseEntity<AccessCheckResponse> canAccessPatient(
+            @RequestParam UUID userId,
+            @PathVariable UUID patientId) {
+
+        boolean canAccess = accessControlService.canAccessPatient(userId, patientId);
+        if (canAccess) {
+            return ResponseEntity.ok(AccessCheckResponse.accessGranted());
+        } else {
+            return ResponseEntity.ok(AccessCheckResponse.denied("No access to patient"));
         }
     }
 }

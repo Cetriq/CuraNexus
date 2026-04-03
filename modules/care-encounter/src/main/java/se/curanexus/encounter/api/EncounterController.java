@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import se.curanexus.encounter.api.dto.*;
 import se.curanexus.encounter.domain.EncounterClass;
 import se.curanexus.encounter.domain.EncounterStatus;
+import se.curanexus.encounter.service.EncounterReadinessService;
 import se.curanexus.encounter.service.EncounterService;
 
 import java.time.LocalDate;
@@ -23,9 +24,12 @@ import java.util.UUID;
 public class EncounterController {
 
     private final EncounterService encounterService;
+    private final EncounterReadinessService readinessService;
 
-    public EncounterController(EncounterService encounterService) {
+    public EncounterController(EncounterService encounterService,
+                               EncounterReadinessService readinessService) {
         this.encounterService = encounterService;
+        this.readinessService = readinessService;
     }
 
     @GetMapping("/encounters")
@@ -69,6 +73,13 @@ public class EncounterController {
             @PathVariable UUID encounterId,
             @Valid @RequestBody UpdateStatusRequest request) {
         return encounterService.updateEncounterStatus(encounterId, request);
+    }
+
+    @GetMapping("/encounters/{encounterId}/readiness")
+    @Operation(summary = "Check if encounter is ready to be finished",
+            description = "Returns readiness status with list of blockers if not ready")
+    public EncounterReadinessDto checkReadiness(@PathVariable UUID encounterId) {
+        return readinessService.checkReadiness(encounterId);
     }
 
     // Patient encounters endpoint

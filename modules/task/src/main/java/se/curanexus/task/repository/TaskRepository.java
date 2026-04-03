@@ -50,4 +50,19 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
 
     @Query("SELECT t FROM Task t WHERE t.sourceType = :sourceType AND t.sourceId = :sourceId")
     List<Task> findBySource(@Param("sourceType") String sourceType, @Param("sourceId") UUID sourceId);
+
+    @Query("SELECT t FROM Task t WHERE t.dependsOnTaskId = :taskId")
+    List<Task> findDependentTasks(@Param("taskId") UUID taskId);
+
+    @Query("SELECT t FROM Task t WHERE t.dependsOnTaskId = :taskId AND t.status = 'BLOCKED'")
+    List<Task> findBlockedDependentTasks(@Param("taskId") UUID taskId);
+
+    @Query("SELECT t FROM Task t WHERE t.templateId = :templateId AND t.encounterId = :encounterId")
+    List<Task> findByTemplateAndEncounter(@Param("templateId") UUID templateId, @Param("encounterId") UUID encounterId);
+
+    @Query("SELECT t FROM Task t WHERE t.status NOT IN ('COMPLETED', 'CANCELLED') AND t.dueAt < :now AND t.escalated = false")
+    List<Task> findOverdueNotEscalated(@Param("now") LocalDateTime now);
+
+    @Query("SELECT t FROM Task t WHERE t.encounterId = :encounterId AND t.status = 'BLOCKED'")
+    List<Task> findBlockedByEncounter(@Param("encounterId") UUID encounterId);
 }

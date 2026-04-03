@@ -13,6 +13,7 @@
     <description>Healthcare Provider Platform for Swedish Healthcare</description>
 
     <modules>
+        <module>modules/events</module>
         <module>modules/patient</module>
         <module>modules/care-encounter</module>
         <module>modules/journal</module>
@@ -21,6 +22,7 @@
         <module>modules/audit</module>
         <module>modules/triage</module>
         <module>modules/integration</module>
+        <module>modules/notification</module>
     </modules>
 
     <properties>

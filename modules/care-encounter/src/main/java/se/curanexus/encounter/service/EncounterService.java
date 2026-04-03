@@ -7,6 +7,9 @@ import org.springframework.transaction.annotation.Transactional;
 import se.curanexus.encounter.api.dto.*;
 import se.curanexus.encounter.domain.*;
 import se.curanexus.encounter.repository.*;
+import se.curanexus.events.DomainEventPublisher;
+import se.curanexus.events.encounter.EncounterCreatedEvent;
+import se.curanexus.events.encounter.EncounterStatusChangedEvent;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -21,13 +24,19 @@ public class EncounterService {
     private final EncounterRepository encounterRepository;
     private final ParticipantRepository participantRepository;
     private final EncounterReasonRepository reasonRepository;
+    private final DomainEventPublisher eventPublisher;
+    private final ReadinessChecker readinessChecker;
 
     public EncounterService(EncounterRepository encounterRepository,
                             ParticipantRepository participantRepository,
-                            EncounterReasonRepository reasonRepository) {
+                            EncounterReasonRepository reasonRepository,
+                            DomainEventPublisher eventPublisher,
+                            ReadinessChecker readinessChecker) {
         this.encounterRepository = encounterRepository;
         this.participantRepository = participantRepository;
         this.reasonRepository = reasonRepository;
+        this.eventPublisher = eventPublisher;
+        this.readinessChecker = readinessChecker;
     }
 
     // Encounter operations
@@ -77,6 +86,18 @@ public class EncounterService {
         encounter.setPlannedEndTime(request.plannedEndTime());
 
         Encounter saved = encounterRepository.save(encounter);
+
+        // Publish event
+        eventPublisher.publish(new EncounterCreatedEvent(
+                this,
+                saved.getId(),
+                saved.getPatientId(),
+                saved.getEncounterClass().name(),
+                saved.getResponsibleUnitId(),
+                saved.getResponsiblePractitionerId(),
+                saved.getPlannedStartTime()
+        ));
+
         return EncounterDto.from(saved);
     }
 
@@ -117,13 +138,30 @@ public class EncounterService {
 
     public EncounterDto updateEncounterStatus(UUID encounterId, UpdateStatusRequest request) {
         Encounter encounter = findEncounterOrThrow(encounterId);
+        EncounterStatus oldStatus = encounter.getStatus();
 
         if (!encounter.canTransitionTo(request.status())) {
             throw new InvalidStatusTransitionException(encounter.getStatus(), request.status());
         }
 
+        // Validate readiness before allowing transition to FINISHED
+        if (request.status() == EncounterStatus.FINISHED) {
+            readinessChecker.validateCanFinish(encounterId);
+        }
+
         encounter.transitionTo(request.status());
         Encounter saved = encounterRepository.save(encounter);
+
+        // Publish status change event
+        eventPublisher.publish(new EncounterStatusChangedEvent(
+                this,
+                saved.getId(),
+                saved.getPatientId(),
+                oldStatus.name(),
+                saved.getStatus().name(),
+                null // changedById would come from security context in real implementation
+        ));
+
         return EncounterDto.from(saved);
     }
 

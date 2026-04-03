@@ -2,6 +2,28 @@ version: '3.8'
 
 services:
   # =============================================================================
+  # RabbitMQ Message Broker
+  # =============================================================================
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: curanexus-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-curanexus}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-curanexus}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - curanexus-network
+
+  # =============================================================================
   # PostgreSQL Database
   # =============================================================================
   postgres:
@@ -70,10 +92,16 @@ services:
       SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SERVER_PORT: 8081
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-curanexus}
+      RABBITMQ_PASS: ${RABBITMQ_PASS:-curanexus}
     ports:
       - "8081:8081"
     depends_on:
       postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - curanexus-network
@@ -97,10 +125,16 @@ services:
       SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SERVER_PORT: 8082
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-curanexus}
+      RABBITMQ_PASS: ${RABBITMQ_PASS:-curanexus}
     ports:
       - "8082:8082"
     depends_on:
       postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - curanexus-network
@@ -124,10 +158,16 @@ services:
       SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SERVER_PORT: 8083
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-curanexus}
+      RABBITMQ_PASS: ${RABBITMQ_PASS:-curanexus}
     ports:
       - "8083:8083"
     depends_on:
       postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - curanexus-network
@@ -214,6 +254,40 @@ services:
       - curanexus-network
 
   # =============================================================================
+  # D4 - Notification Module (Event Store)
+  # =============================================================================
+  notification:
+    image: curanexus/notification:latest
+    container_name: curanexus-notification
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: notification
+    environment:
+      SPRING_DATASOURCE_URL: ${CURANEXUS_DB_URL:-jdbc:postgresql://postgres:5432/curanexus}
+      SPRING_DATASOURCE_USERNAME: ${CURANEXUS_DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${CURANEXUS_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8088
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-curanexus}
+      RABBITMQ_PASS: ${RABBITMQ_PASS:-curanexus}
+      CURANEXUS_ADMIN_API_KEY: ${CURANEXUS_ADMIN_API_KEY:-}
+    ports:
+      - "8088:8088"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - curanexus-network
+
+  # =============================================================================
   # E1 - Integration/Gateway Module
   # =============================================================================
   integration:
@@ -231,6 +305,7 @@ services:
       JOURNAL_SERVICE_URL: ${JOURNAL_SERVICE_URL:-http://journal:8082}
       TASK_SERVICE_URL: ${TASK_SERVICE_URL:-http://task:8083}
       AUTHORIZATION_SERVICE_URL: ${AUTHORIZATION_SERVICE_URL:-http://authorization:8084}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL:-http://notification:8088}
     ports:
       - "8085:8085"
     depends_on:
@@ -241,6 +316,7 @@ services:
       - authorization
       - audit
       - triage
+      - notification
     networks:
       - curanexus-network
 
@@ -281,3 +357,5 @@ volumes:
     name: curanexus-postgres-data
   pgadmin_data:
     name: curanexus-pgadmin-data
+  rabbitmq_data:
+    name: curanexus-rabbitmq-data
