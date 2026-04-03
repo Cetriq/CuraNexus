@@ -25,6 +25,7 @@
         <module>modules/notification</module>
         <module>modules/booking</module>
         <module>modules/medication</module>
+        <module>modules/referral</module>
     </modules>
 
     <properties>
