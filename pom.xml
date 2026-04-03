@@ -23,6 +23,7 @@
         <module>modules/triage</module>
         <module>modules/integration</module>
         <module>modules/notification</module>
+        <module>modules/booking</module>
     </modules>
 
     <properties>

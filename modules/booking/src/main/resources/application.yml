@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: curanexus-booking
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:curanexus}
+    username: ${DB_USER:curanexus}
+    password: ${DB_PASSWORD:curanexus}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
+server:
+  port: 8088
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+
+logging:
+  level:
+    se.curanexus: DEBUG
+    org.springframework.web: INFO
+
+# Booking-specific configuration
+booking:
+  defaults:
+    slot-duration-minutes: 30
+    max-advance-booking-days: 90
+    min-advance-booking-hours: 2
+    cancellation-deadline-hours: 24
+  reminders:
+    enabled: true
+    hours-before: [24, 2]
