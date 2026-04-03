@@ -10,6 +10,7 @@ import se.curanexus.events.DomainEvent;
 import se.curanexus.events.DomainEventPublisher;
 import se.curanexus.lab.api.dto.*;
 import se.curanexus.lab.domain.*;
+import se.curanexus.lab.repository.LabOrderItemRepository;
 import se.curanexus.lab.repository.LabOrderRepository;
 import se.curanexus.lab.repository.LabResultRepository;
 import se.curanexus.lab.repository.LabSpecimenRepository;
@@ -26,15 +27,18 @@ public class LabService {
     private static final Logger log = LoggerFactory.getLogger(LabService.class);
 
     private final LabOrderRepository orderRepository;
+    private final LabOrderItemRepository orderItemRepository;
     private final LabResultRepository resultRepository;
     private final LabSpecimenRepository specimenRepository;
     private final DomainEventPublisher eventPublisher;
 
     public LabService(LabOrderRepository orderRepository,
+                      LabOrderItemRepository orderItemRepository,
                       LabResultRepository resultRepository,
                       LabSpecimenRepository specimenRepository,
                       DomainEventPublisher eventPublisher) {
         this.orderRepository = orderRepository;
+        this.orderItemRepository = orderItemRepository;
         this.resultRepository = resultRepository;
         this.specimenRepository = specimenRepository;
         this.eventPublisher = eventPublisher;
@@ -273,15 +277,10 @@ public class LabService {
                                         UUID analyzerId, String analyzerName) {
         log.info("Registering result for order item {}", orderItemId);
 
-        LabOrder order = orderRepository.findAll().stream()
-                .filter(o -> o.getOrderItems().stream().anyMatch(i -> i.getId().equals(orderItemId)))
-                .findFirst()
+        LabOrderItem item = orderItemRepository.findByIdWithOrder(orderItemId)
                 .orElseThrow(() -> new IllegalArgumentException("Order item hittades ej: " + orderItemId));
 
-        LabOrderItem item = order.getOrderItems().stream()
-                .filter(i -> i.getId().equals(orderItemId))
-                .findFirst()
-                .orElseThrow();
+        LabOrder order = item.getLabOrder();
 
         LabResult result = new LabResult(item);
 

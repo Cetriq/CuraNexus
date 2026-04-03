@@ -1,5 +1,7 @@
 package se.curanexus.lab.api.dto;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import se.curanexus.lab.domain.LabOrderPriority;
 
@@ -7,7 +9,8 @@ import java.util.List;
 import java.util.UUID;
 
 public record CreateLabOrderRequest(
-        @NotNull UUID patientId,
+        @NotNull(message = "Patient-ID är obligatoriskt")
+        UUID patientId,
         String patientPersonnummer,
         String patientName,
         LabOrderPriority priority,
@@ -26,6 +29,8 @@ public record CreateLabOrderRequest(
         String labComment,
         UUID encounterId,
         UUID referralId,
+        @NotEmpty(message = "Minst ett test måste beställas")
+        @Valid
         List<LabTestRequest> tests,
         boolean sendImmediately
 ) {
