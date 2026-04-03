@@ -12,6 +12,12 @@
 - **Clinical Documentation** - Notes, diagnoses, procedures with signing workflow
 - **Triage** - RETTS-inspired emergency triage system
 
+### Clinical Support Modules
+- **Booking** - Appointment scheduling with check-in and visit lifecycle
+- **Medication** - Prescription management with drug interaction checking
+- **Referral** - Referral workflow (draft → sent → received → scheduled)
+- **Lab** - Lab order management with result tracking
+
 ### Workflow & Tasks
 - **Task Management** - Configurable task templates with automatic creation
 - **Task Dependencies** - Sequential task execution with blocking/unblocking
@@ -66,6 +72,11 @@ docker-compose ps
 | Integration Gateway | 8085 | API Gateway with FHIR support |
 | Audit | 8086 | PDL-compliant audit logging |
 | Triage | 8087 | RETTS-inspired triage system |
+| Notification | 8088 | Notifications and messaging |
+| Booking | 8089 | Appointment scheduling |
+| Medication | 8090 | Prescription management |
+| Referral | 8091 | Referral workflow |
+| Lab | 8092 | Lab orders and results |
 | RabbitMQ | 5672/15672 | Message broker |
 | PostgreSQL | 5441 | Database |
 | pgAdmin | 5050 | Database admin (dev profile) |
@@ -78,6 +89,10 @@ Each service exposes Swagger UI at `/swagger-ui.html`:
 - http://localhost:8082/swagger-ui.html (Journal)
 - http://localhost:8083/swagger-ui.html (Task)
 - http://localhost:8084/swagger-ui.html (Authorization)
+- http://localhost:8089/swagger-ui.html (Booking)
+- http://localhost:8090/swagger-ui.html (Medication)
+- http://localhost:8091/swagger-ui.html (Referral)
+- http://localhost:8092/swagger-ui.html (Lab)
 
 ### FHIR Endpoints
 
@@ -111,9 +126,13 @@ mvn spring-boot:run
 docker-compose --profile dev up -d
 ```
 
-### Run E2E workflow test
+### Run E2E tests
 ```bash
+# Core workflow test (encounter → tasks → notes → finish)
 ./scripts/e2e-workflow-test.sh
+
+# New modules test (booking, medication, referral, lab)
+./scripts/e2e-new-modules-test.sh
 ```
 
 ## Architecture
@@ -135,6 +154,10 @@ modules/
 ├── journal/           # A3 - Clinical Documentation
 ├── triage/            # A4 - Triage & Assessment
 ├── task/              # B1 - Task & Workflow
+├── booking/           # B2 - Appointment Scheduling
+├── medication/        # B3 - Prescription Management
+├── referral/          # B4 - Referral Workflow
+├── lab/               # B5 - Lab Orders & Results
 ├── authorization/     # C2 - Authorization (RBAC+ABAC)
 ├── audit/             # C3 - Audit & Logging
 ├── events/            # Shared - Domain Events
