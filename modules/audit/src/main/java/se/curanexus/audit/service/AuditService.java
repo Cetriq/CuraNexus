@@ -1,326 +1,174 @@
 package se.curanexus.audit.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import se.curanexus.audit.api.dto.*;
 import se.curanexus.audit.domain.*;
-import se.curanexus.audit.repository.*;
+import se.curanexus.audit.repository.AuditEventRepository;
+import se.curanexus.audit.repository.DataChangeLogRepository;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
-import java.util.*;
+import java.time.temporal.ChronoUnit;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @Transactional
 public class AuditService {
 
     private final AuditEventRepository auditEventRepository;
-    private final AccessLogRepository accessLogRepository;
-    private final ChangeLogRepository changeLogRepository;
-    private final SecurityEventRepository securityEventRepository;
-    private final ObjectMapper objectMapper;
+    private final DataChangeLogRepository dataChangeLogRepository;
 
-    public AuditService(
-            AuditEventRepository auditEventRepository,
-            AccessLogRepository accessLogRepository,
-            ChangeLogRepository changeLogRepository,
-            SecurityEventRepository securityEventRepository,
-            ObjectMapper objectMapper) {
+    public AuditService(AuditEventRepository auditEventRepository,
+                        DataChangeLogRepository dataChangeLogRepository) {
         this.auditEventRepository = auditEventRepository;
-        this.accessLogRepository = accessLogRepository;
-        this.changeLogRepository = changeLogRepository;
-        this.securityEventRepository = securityEventRepository;
-        this.objectMapper = objectMapper;
+        this.dataChangeLogRepository = dataChangeLogRepository;
     }
 
-    // ========== Audit Events ==========
-
-    public AuditEvent recordEvent(AuditEventType eventType, UUID userId, ResourceType resourceType,
-                                   UUID resourceId, UUID patientId, String action, Map<String, Object> details,
-                                   String ipAddress, String userAgent, UUID careRelationId, String reason, String username) {
-        AuditEvent event = new AuditEvent(eventType, userId, resourceType);
-        event.setResourceId(resourceId);
-        event.setPatientId(patientId);
-        event.setAction(action);
-        event.setUsername(username);
-        if (details != null) {
-            try {
-                event.setDetails(objectMapper.writeValueAsString(details));
-            } catch (JsonProcessingException e) {
-                event.setDetails("{}");
-            }
+    public AuditEventDto logEvent(CreateAuditEventRequest request) {
+        AuditEvent event = new AuditEvent(request.userId(), request.action(), request.resourceType());
+        event.setUserHsaId(request.userHsaId());
+        event.setUserName(request.userName());
+        event.setUserRole(request.userRole());
+        event.setResourceId(request.resourceId());
+        event.setResourceDescription(request.resourceDescription());
+        event.setPatientId(request.patientId());
+        if (request.patientPersonnummer() != null) {
+            event.setPatientPersonnummerHash(hashPersonnummer(request.patientPersonnummer()));
         }
-        event.setIpAddress(ipAddress);
-        event.setUserAgent(userAgent);
-        event.setCareRelationId(careRelationId);
-        event.setReason(reason);
-        return auditEventRepository.save(event);
+        event.setCareUnitId(request.careUnitId());
+        event.setCareUnitName(request.careUnitName());
+        event.setCareUnitHsaId(request.careUnitHsaId());
+        event.setIpAddress(request.ipAddress());
+        event.setUserAgent(request.userAgent());
+        event.setSessionId(request.sessionId());
+        event.setEncounterId(request.encounterId());
+        event.setAccessReason(request.accessReason());
+        event.setEmergencyAccess(request.emergencyAccess() != null && request.emergencyAccess());
+        event.setConsentReference(request.consentReference());
+        event.setSuccess(request.success() == null || request.success());
+        event.setErrorMessage(request.errorMessage());
+        event.setDetails(request.details());
+        event.setSourceSystem(request.sourceSystem());
+        event.setCorrelationId(request.correlationId());
+        AuditEvent saved = auditEventRepository.save(event);
+        return toDto(saved);
     }
 
-    @Async
-    public void recordEventAsync(AuditEventType eventType, UUID userId, ResourceType resourceType,
-                                  UUID resourceId, UUID patientId, String action, Map<String, Object> details,
-                                  String ipAddress, String userAgent, UUID careRelationId, String reason, String username) {
-        recordEvent(eventType, userId, resourceType, resourceId, patientId, action, details, ipAddress, userAgent, careRelationId, reason, username);
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<AuditEvent> getEvent(UUID eventId) {
-        return auditEventRepository.findById(eventId);
-    }
-
-    @Transactional(readOnly = true)
-    public Page<AuditEvent> searchEvents(UUID userId, ResourceType resourceType, UUID resourceId,
-                                          AuditEventType eventType, Instant fromDate, Instant toDate,
-                                          Pageable pageable) {
-        return auditEventRepository.searchEvents(userId, resourceType, resourceId, eventType, fromDate, toDate, pageable);
-    }
-
-    // ========== Access Logs ==========
-
-    public AccessLog recordAccess(UUID userId, String username, UUID patientId, ResourceType resourceType,
-                                   UUID resourceId, AccessType accessType, UUID careRelationId,
-                                   String careRelationType, String reason, String ipAddress) {
-        AccessLog log = new AccessLog(userId, patientId, resourceType, accessType);
-        log.setUsername(username);
-        log.setResourceId(resourceId);
-        log.setCareRelationId(careRelationId);
-        log.setCareRelationType(careRelationType);
-        log.setReason(reason);
-        log.setIpAddress(ipAddress);
-        return accessLogRepository.save(log);
-    }
-
-    @Async
-    public void recordAccessAsync(UUID userId, String username, UUID patientId, ResourceType resourceType,
-                                   UUID resourceId, AccessType accessType, UUID careRelationId,
-                                   String careRelationType, String reason, String ipAddress) {
-        recordAccess(userId, username, patientId, resourceType, resourceId, accessType, careRelationId, careRelationType, reason, ipAddress);
-    }
-
-    @Transactional(readOnly = true)
-    public Page<AccessLog> searchAccessLogs(UUID patientId, UUID userId, Instant fromDate, Instant toDate, Pageable pageable) {
-        return accessLogRepository.searchAccessLogs(patientId, userId, fromDate, toDate, pageable);
-    }
-
-    @Transactional(readOnly = true)
-    public List<AccessLog> getPatientAccessHistory(UUID patientId, Instant fromDate, Instant toDate) {
-        return accessLogRepository.findByPatientIdAndTimestampBetween(patientId, fromDate, toDate);
-    }
-
-    // ========== Change Logs ==========
-
-    public ChangeLog recordChange(UUID userId, String username, ResourceType resourceType, UUID resourceId,
-                                   UUID patientId, ChangeType changeType, String fieldName,
-                                   String oldValue, String newValue) {
-        ChangeLog log = new ChangeLog(userId, resourceType, resourceId, changeType);
-        log.setUsername(username);
-        log.setPatientId(patientId);
-        log.setFieldName(fieldName);
-        log.setOldValue(oldValue);
-        log.setNewValue(newValue);
-        return changeLogRepository.save(log);
-    }
-
-    @Async
-    public void recordChangeAsync(UUID userId, String username, ResourceType resourceType, UUID resourceId,
-                                   UUID patientId, ChangeType changeType, String fieldName,
-                                   String oldValue, String newValue) {
-        recordChange(userId, username, resourceType, resourceId, patientId, changeType, fieldName, oldValue, newValue);
-    }
-
-    @Transactional(readOnly = true)
-    public Page<ChangeLog> searchChangeLogs(ResourceType resourceType, UUID resourceId, UUID userId,
-                                             ChangeType changeType, Instant fromDate, Instant toDate,
-                                             Pageable pageable) {
-        return changeLogRepository.searchChangeLogs(resourceType, resourceId, userId, changeType, fromDate, toDate, pageable);
-    }
-
-    @Transactional(readOnly = true)
-    public List<ChangeLog> getResourceHistory(ResourceType resourceType, UUID resourceId) {
-        return changeLogRepository.findByResourceTypeAndResourceIdOrderByTimestampDesc(resourceType, resourceId);
-    }
-
-    // ========== Security Events ==========
-
-    public SecurityEvent recordSecurityEvent(UUID userId, String username, SecurityEventType eventType,
-                                              boolean success, String ipAddress, String userAgent,
-                                              Map<String, Object> details) {
-        SecurityEvent event = new SecurityEvent(userId, eventType, success);
-        event.setUsername(username);
-        event.setIpAddress(ipAddress);
-        event.setUserAgent(userAgent);
-        if (details != null) {
-            try {
-                event.setDetails(objectMapper.writeValueAsString(details));
-            } catch (JsonProcessingException e) {
-                event.setDetails("{}");
-            }
+    public void logDataChanges(UUID auditEventId, List<DataChangeRequest> changes) {
+        for (DataChangeRequest change : changes) {
+            DataChangeLog log = new DataChangeLog(auditEventId, change.resourceType(), change.resourceId(),
+                    change.fieldName(), change.oldValue(), change.newValue(), change.changeType());
+            dataChangeLogRepository.save(log);
         }
-        return securityEventRepository.save(event);
-    }
-
-    @Async
-    public void recordSecurityEventAsync(UUID userId, String username, SecurityEventType eventType,
-                                          boolean success, String ipAddress, String userAgent,
-                                          Map<String, Object> details) {
-        recordSecurityEvent(userId, username, eventType, success, ipAddress, userAgent, details);
     }
 
     @Transactional(readOnly = true)
-    public Page<SecurityEvent> searchSecurityEvents(UUID userId, SecurityEventType eventType, Boolean success,
-                                                     Instant fromDate, Instant toDate, Pageable pageable) {
-        return securityEventRepository.searchSecurityEvents(userId, eventType, success, fromDate, toDate, pageable);
-    }
-
-    // ========== Reports ==========
-
-    @Transactional(readOnly = true)
-    public UserActivityReport generateUserActivityReport(UUID userId, LocalDate fromDate, LocalDate toDate) {
-        Instant from = fromDate.atStartOfDay().toInstant(ZoneOffset.UTC);
-        Instant to = toDate.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
-
-        long totalEvents = auditEventRepository.countByUserIdAndTimestampBetween(userId, from, to);
-        long modificationCount = changeLogRepository.countByUserIdAndTimestampBetween(userId, from, to);
-        long patientsAccessed = auditEventRepository.countDistinctPatientsAccessedByUser(userId, from, to);
-        long loginCount = securityEventRepository.countByUserIdAndEventType(userId, SecurityEventType.LOGIN, from, to);
-
-        Map<String, Long> eventsByType = new HashMap<>();
-        for (Object[] row : auditEventRepository.countByUserIdGroupByEventType(userId, from, to)) {
-            eventsByType.put(((AuditEventType) row[0]).name(), (Long) row[1]);
-        }
-
-        return new UserActivityReport(
-                userId,
-                null, // username would be fetched from user service
-                fromDate,
-                toDate,
-                totalEvents,
-                totalEvents - modificationCount,
-                modificationCount,
-                patientsAccessed,
-                loginCount,
-                eventsByType
-        );
+    public AuditEventDto getEvent(UUID id) {
+        return auditEventRepository.findById(id).map(this::toDto)
+                .orElseThrow(() -> new AuditEventNotFoundException(id));
     }
 
     @Transactional(readOnly = true)
-    public PatientAccessReport generatePatientAccessReport(UUID patientId, LocalDate fromDate, LocalDate toDate) {
-        Instant from = fromDate.atStartOfDay().toInstant(ZoneOffset.UTC);
-        Instant to = toDate.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
-
-        long totalAccesses = accessLogRepository.countByPatientIdAndTimestampBetween(patientId, from, to);
-        long uniqueUsers = accessLogRepository.countDistinctUsersByPatientId(patientId, from, to);
-
-        List<PatientAccessReport.UserAccessStats> accessByUser = new ArrayList<>();
-        for (Object[] row : accessLogRepository.getAccessStatsByPatient(patientId, from, to)) {
-            accessByUser.add(new PatientAccessReport.UserAccessStats(
-                    (UUID) row[0],
-                    (String) row[1],
-                    ((Long) row[2]).intValue(),
-                    (String) row[3],
-                    (Instant) row[4]
-            ));
-        }
-
-        Map<String, Long> accessByResourceType = new HashMap<>();
-        for (Object[] row : accessLogRepository.countByPatientIdGroupByResourceType(patientId, from, to)) {
-            accessByResourceType.put(((ResourceType) row[0]).name(), (Long) row[1]);
-        }
-
-        return new PatientAccessReport(
-                patientId,
-                fromDate,
-                toDate,
-                totalAccesses,
-                uniqueUsers,
-                accessByUser,
-                accessByResourceType
-        );
+    public Page<AuditEventSummaryDto> getPatientAuditLog(UUID patientId, Pageable pageable) {
+        return auditEventRepository.findByPatientIdOrderByTimestampDesc(patientId, pageable).map(this::toSummaryDto);
     }
 
     @Transactional(readOnly = true)
-    public SystemAuditSummary generateSystemSummary(LocalDate fromDate, LocalDate toDate) {
-        Instant from = fromDate.atStartOfDay().toInstant(ZoneOffset.UTC);
-        Instant to = toDate.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+    public Page<AuditEventSummaryDto> getUserAuditLog(String userId, Pageable pageable) {
+        return auditEventRepository.findByUserIdOrderByTimestampDesc(userId, pageable).map(this::toSummaryDto);
+    }
 
-        long totalEvents = auditEventRepository.countInPeriod(from, to);
-        long totalUsers = auditEventRepository.countDistinctUsersInPeriod(from, to);
-        long totalPatientsAccessed = auditEventRepository.countDistinctPatientsInPeriod(from, to);
+    @Transactional(readOnly = true)
+    public Page<AuditEventSummaryDto> getCareUnitAuditLog(UUID careUnitId, Pageable pageable) {
+        return auditEventRepository.findByCareUnitIdOrderByTimestampDesc(careUnitId, pageable).map(this::toSummaryDto);
+    }
 
-        Map<String, Long> eventsByType = new HashMap<>();
-        for (Object[] row : auditEventRepository.countByEventTypeInPeriod(from, to)) {
-            eventsByType.put(((AuditEventType) row[0]).name(), (Long) row[1]);
+    @Transactional(readOnly = true)
+    public List<AuditEventSummaryDto> getResourceHistory(ResourceType resourceType, UUID resourceId) {
+        return auditEventRepository.findByResourceTypeAndResourceIdOrderByTimestampDesc(resourceType, resourceId)
+                .stream().map(this::toSummaryDto).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AuditEventSummaryDto> getEncounterAuditLog(UUID encounterId) {
+        return auditEventRepository.findByEncounterIdOrderByTimestampDesc(encounterId)
+                .stream().map(this::toSummaryDto).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AuditEventSummaryDto> getEmergencyAccessEvents(Instant from, Instant to, Pageable pageable) {
+        return auditEventRepository.findByEmergencyAccessTrueAndTimestampBetweenOrderByTimestampDesc(from, to, pageable)
+                .map(this::toSummaryDto);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AuditEventSummaryDto> getFailedAccessAttempts(Instant from, Instant to, Pageable pageable) {
+        return auditEventRepository.findBySuccessFalseAndTimestampBetweenOrderByTimestampDesc(from, to, pageable)
+                .map(this::toSummaryDto);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AuditEventSummaryDto> search(AuditSearchRequest request, Pageable pageable) {
+        return auditEventRepository.search(request.patientId(), request.userId(), request.careUnitId(),
+                request.resourceType(), request.action(), request.from(), request.to(), pageable).map(this::toSummaryDto);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DataChangeLogDto> getDataChanges(UUID auditEventId) {
+        return dataChangeLogRepository.findByAuditEventIdOrderByTimestampDesc(auditEventId)
+                .stream().map(this::toDataChangeDto).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DataChangeLogDto> getResourceChangeHistory(ResourceType resourceType, UUID resourceId) {
+        return dataChangeLogRepository.findByResourceTypeAndResourceIdOrderByTimestampDesc(resourceType, resourceId)
+                .stream().map(this::toDataChangeDto).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public AuditStatisticsDto getStatistics(Instant from, Instant to) {
+        if (from == null) from = Instant.now().minus(30, ChronoUnit.DAYS);
+        if (to == null) to = Instant.now();
+        long totalEvents = auditEventRepository.countByTimestampBetween(from, to);
+        long emergencyAccess = auditEventRepository.countByEmergencyAccessTrueAndTimestampBetween(from, to);
+        long failedAttempts = auditEventRepository.countBySuccessFalseAndTimestampBetween(from, to);
+        return new AuditStatisticsDto(from, to, totalEvents, emergencyAccess, failedAttempts);
+    }
+
+    private String hashPersonnummer(String personnummer) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(personnummer.getBytes());
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 not available", e);
         }
-
-        long totalLogins = securityEventRepository.countByEventTypeInPeriod(SecurityEventType.LOGIN, from, to);
-        long failedLogins = securityEventRepository.countFailedByEventTypeInPeriod(SecurityEventType.LOGIN_FAILED, from, to);
-        long permissionDenied = securityEventRepository.countByEventTypeInPeriod(SecurityEventType.PERMISSION_DENIED, from, to);
-        long emergencyAccess = securityEventRepository.countByEventTypeInPeriod(SecurityEventType.EMERGENCY_ACCESS, from, to);
-
-        return new SystemAuditSummary(
-                fromDate,
-                toDate,
-                totalEvents,
-                totalUsers,
-                totalPatientsAccessed,
-                eventsByType,
-                new SystemAuditSummary.SecuritySummary(totalLogins, failedLogins, permissionDenied, emergencyAccess)
-        );
     }
 
-    // ========== Report Records ==========
-
-    public record UserActivityReport(
-            UUID userId,
-            String username,
-            LocalDate fromDate,
-            LocalDate toDate,
-            long totalEvents,
-            long accessCount,
-            long modificationCount,
-            long patientsAccessed,
-            long loginCount,
-            Map<String, Long> eventsByType
-    ) {}
-
-    public record PatientAccessReport(
-            UUID patientId,
-            LocalDate fromDate,
-            LocalDate toDate,
-            long totalAccesses,
-            long uniqueUsers,
-            List<UserAccessStats> accessByUser,
-            Map<String, Long> accessByResourceType
-    ) {
-        public record UserAccessStats(
-                UUID userId,
-                String username,
-                int accessCount,
-                String careRelationType,
-                Instant lastAccess
-        ) {}
+    private AuditEventDto toDto(AuditEvent event) {
+        return new AuditEventDto(event.getId(), event.getTimestamp(), event.getUserId(), event.getUserHsaId(),
+                event.getUserName(), event.getUserRole(), event.getAction(), event.getResourceType(),
+                event.getResourceId(), event.getResourceDescription(), event.getPatientId(), event.getCareUnitId(),
+                event.getCareUnitName(), event.getCareUnitHsaId(), event.getIpAddress(), event.getEncounterId(),
+                event.getAccessReason(), event.isEmergencyAccess(), event.isSuccess(), event.getErrorMessage(),
+                event.getSourceSystem(), event.getCorrelationId());
     }
 
-    public record SystemAuditSummary(
-            LocalDate fromDate,
-            LocalDate toDate,
-            long totalEvents,
-            long totalUsers,
-            long totalPatientsAccessed,
-            Map<String, Long> eventsByType,
-            SecuritySummary securityEventsSummary
-    ) {
-        public record SecuritySummary(
-                long totalLogins,
-                long failedLogins,
-                long permissionDenied,
-                long emergencyAccess
-        ) {}
+    private AuditEventSummaryDto toSummaryDto(AuditEvent event) {
+        return new AuditEventSummaryDto(event.getId(), event.getTimestamp(),
+                event.getUserName() != null ? event.getUserName() : event.getUserId(), event.getUserRole(),
+                event.getAction(), event.getResourceType(), event.getResourceId(), event.getPatientId(),
+                event.isEmergencyAccess(), event.isSuccess());
+    }
+
+    private DataChangeLogDto toDataChangeDto(DataChangeLog log) {
+        return new DataChangeLogDto(log.getId(), log.getAuditEventId(), log.getTimestamp(), log.getResourceType(),
+                log.getResourceId(), log.getFieldName(), log.getOldValue(), log.getNewValue(), log.getChangeType());
     }
 }

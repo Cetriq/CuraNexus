@@ -212,10 +212,8 @@ services:
     image: curanexus/audit:latest
     container_name: curanexus-audit
     build:
-      context: .
+      context: ./modules/audit
       dockerfile: Dockerfile
-      args:
-        MODULE_NAME: audit
     environment:
       SPRING_DATASOURCE_URL: ${AUDIT_DB_URL:-jdbc:postgresql://postgres:5432/curanexus_audit}
       SPRING_DATASOURCE_USERNAME: ${AUDIT_DB_USERNAME:-postgres}
@@ -224,12 +222,24 @@ services:
       SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
       SPRING_FLYWAY_BASELINE_VERSION: "0"
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      SERVER_PORT: 8086
+      SERVER_PORT: 8096
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-curanexus}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-curanexus}
     ports:
-      - "8086:8086"
+      - "8096:8096"
     depends_on:
       postgres:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8096/actuator/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 60s
+      retries: 3
     networks:
       - curanexus-network
 
@@ -560,6 +570,7 @@ services:
       FORMS_SERVICE_URL: ${FORMS_SERVICE_URL:-http://forms:8093}
       CERTIFICATES_SERVICE_URL: ${CERTIFICATES_SERVICE_URL:-http://certificates:8094}
       CONSENT_SERVICE_URL: ${CONSENT_SERVICE_URL:-http://consent:8095}
+      AUDIT_SERVICE_URL: ${AUDIT_SERVICE_URL:-http://audit:8096}
     ports:
       - "8085:8085"
     depends_on:
