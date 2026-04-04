@@ -19,6 +19,9 @@ CREATE DATABASE curanexus_certificates;
 -- Create consent database (for patient consent and access blocks)
 CREATE DATABASE curanexus_consent;
 
+-- Create coding database (for ICD-10, KVÅ, ATC code systems)
+CREATE DATABASE curanexus_coding;
+
 -- Grant privileges to the default user
 GRANT ALL PRIVILEGES ON DATABASE curanexus TO postgres;
 GRANT ALL PRIVILEGES ON DATABASE curanexus_audit TO postgres;
@@ -26,6 +29,7 @@ GRANT ALL PRIVILEGES ON DATABASE curanexus_triage TO postgres;
 GRANT ALL PRIVILEGES ON DATABASE curanexus_forms TO postgres;
 GRANT ALL PRIVILEGES ON DATABASE curanexus_certificates TO postgres;
 GRANT ALL PRIVILEGES ON DATABASE curanexus_consent TO postgres;
+GRANT ALL PRIVILEGES ON DATABASE curanexus_coding TO postgres;
 
 -- Connect to each database and enable UUID extension
 \c curanexus
@@ -44,6 +48,9 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 \c curanexus_consent
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+\c curanexus_coding
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Return to default database

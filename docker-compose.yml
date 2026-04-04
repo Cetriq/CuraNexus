@@ -545,6 +545,37 @@ services:
       - curanexus-network
 
   # =============================================================================
+  # B4 - Coding Module
+  # =============================================================================
+  coding:
+    image: curanexus/coding:latest
+    container_name: curanexus-coding
+    build:
+      context: ./modules/coding
+      dockerfile: Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: ${CODING_DB_URL:-jdbc:postgresql://postgres:5432/curanexus_coding}
+      SPRING_DATASOURCE_USERNAME: ${CODING_DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${CODING_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8097
+    ports:
+      - "8097:8097"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8097/actuator/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 60s
+      retries: 3
+    networks:
+      - curanexus-network
+
+  # =============================================================================
   # E1 - Integration/Gateway Module
   # =============================================================================
   integration:
