@@ -81,20 +81,20 @@ export function PatientListPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Kon</label>
+                  <label className="text-sm font-medium">Kön</label>
                   <select
                     name="gender"
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   >
-                    <option value="UNKNOWN">Okant</option>
+                    <option value="UNKNOWN">Okänt</option>
                     <option value="MALE">Man</option>
                     <option value="FEMALE">Kvinna</option>
                     <option value="OTHER">Annat</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium">Fornamn</label>
-                  <Input name="givenName" placeholder="Fornamn" required />
+                  <label className="text-sm font-medium">Förnamn</label>
+                  <Input name="givenName" placeholder="Förnamn" required />
                 </div>
                 <div>
                   <label className="text-sm font-medium">Efternamn</label>
