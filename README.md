@@ -6,29 +6,32 @@
 
 ## Features
 
-### Core Healthcare Modules
-- **Patient Identity** - Personnummer-based patient management with protected identity support
-- **Care Encounters** - Full encounter lifecycle with readiness checking
-- **Clinical Documentation** - Notes, diagnoses, procedures with signing workflow
-- **Triage** - RETTS-inspired emergency triage system
+### Core Healthcare Modules (A-series)
+- **A1 Patient Identity** - Personnummer-based patient management with protected identity support
+- **A2 Care Encounters** - Full encounter lifecycle with readiness checking
+- **A3 Clinical Documentation** - Notes, diagnoses, procedures with signing workflow
+- **A4 Triage** - RETTS-inspired emergency triage system
+- **A5 Booking** - Appointment scheduling with check-in and visit lifecycle
+- **A6 Referral** - Referral workflow (draft → sent → received → scheduled)
+- **A7 Medication** - Prescription management with drug interaction checking
+- **A8 Lab** - Lab order management with result tracking
+- **A13 Forms** - Dynamic form templates with validation and submissions
 
-### Clinical Support Modules
-- **Booking** - Appointment scheduling with check-in and visit lifecycle
-- **Medication** - Prescription management with drug interaction checking
-- **Referral** - Referral workflow (draft → sent → received → scheduled)
-- **Lab** - Lab order management with result tracking
+### Operational Modules (B-series)
+- **B1 Task Management** - Configurable task templates with automatic creation
+- **B4 Coding & Classification** - ICD-10-SE, KVÅ, ATC code systems with search and validation
+- **B5 Certificates** - Medical certificate management (FK7263, FK7804, etc.)
 
-### Workflow & Tasks
-- **Task Management** - Configurable task templates with automatic creation
-- **Task Dependencies** - Sequential task execution with blocking/unblocking
-- **Due Dates & Escalation** - Automatic escalation of overdue tasks
-- **Progress Tracking** - Real-time encounter completion tracking
+### Security & Compliance (C-series)
+- **C1 Consent** - Patient consent management with access blocks (spärrar)
+- **C2 Authorization** - RBAC + ABAC access control with care relation context
+- **C3 Audit** - PDL-compliant audit logging (WHO, WHAT, WHEN, WHERE, WHY)
 
-### Security & Compliance
-- **RBAC + ABAC** - Role-based and attribute-based access control
-- **Care Relations** - Access requires active care relation (PDL compliance)
-- **Emergency Access** - "Nödåtkomst" with mandatory reason logging
-- **Full Audit Trail** - All access decisions logged
+### Intelligence & Events (D-series)
+- **D4 Notification** - Event publishing and notifications
+
+### Platform (E-series)
+- **E1 Integration Gateway** - API Gateway with FHIR R4 support
 
 ### Integration & Interoperability
 - **FHIR R4** - Full FHIR support via HAPI FHIR 7.0.2
@@ -62,28 +65,33 @@ docker-compose ps
 
 ## Services
 
-| Service | Port | Description |
-|---------|------|-------------|
-| Patient | 8080 | Patient identity management |
-| Care-Encounter | 8081 | Care encounter lifecycle |
-| Journal | 8082 | Clinical documentation (notes, diagnoses, procedures) |
-| Task | 8083 | Task and workflow management |
-| Authorization | 8084 | RBAC + ABAC authorization |
-| Integration Gateway | 8085 | API Gateway with FHIR support |
-| Audit | 8086 | PDL-compliant audit logging |
-| Triage | 8087 | RETTS-inspired triage system |
-| Notification | 8088 | Notifications and messaging |
-| Booking | 8089 | Appointment scheduling |
-| Medication | 8090 | Prescription management |
-| Referral | 8091 | Referral workflow |
-| Lab | 8092 | Lab orders and results |
-| RabbitMQ | 5672/15672 | Message broker |
-| PostgreSQL | 5441 | Database |
-| pgAdmin | 5050 | Database admin (dev profile) |
+| Service | Port | Module | Description |
+|---------|------|--------|-------------|
+| Patient | 8080 | A1 | Patient identity management |
+| Care-Encounter | 8081 | A2 | Care encounter lifecycle |
+| Journal | 8082 | A3 | Clinical documentation |
+| Task | 8083 | B1 | Task and workflow management |
+| Authorization | 8084 | C2 | RBAC + ABAC authorization |
+| Integration | 8085 | E1 | API Gateway with FHIR support |
+| Triage | 8087 | A4 | RETTS-inspired triage system |
+| Notification | 8088 | D4 | Notifications and messaging |
+| Booking | 8089 | A5 | Appointment scheduling |
+| Medication | 8090 | A7 | Prescription management |
+| Referral | 8091 | A6 | Referral workflow |
+| Lab | 8092 | A8 | Lab orders and results |
+| Forms | 8093 | A13 | Dynamic form templates |
+| Certificates | 8094 | B5 | Medical certificates |
+| Consent | 8095 | C1 | Consent and access blocks |
+| Audit | 8096 | C3 | PDL-compliant audit logging |
+| Coding | 8097 | B4 | ICD-10, KVÅ, ATC code systems |
+| Frontend | 3001 | — | React web application |
+| RabbitMQ | 5672/15672 | — | Message broker |
+| PostgreSQL | 5441 | — | Database |
+| pgAdmin | 5050 | — | Database admin (dev profile) |
 
 ## API Documentation
 
-Each service exposes Swagger UI at `/swagger-ui.html`:
+Each service exposes OpenAPI documentation:
 - http://localhost:8080/swagger-ui.html (Patient)
 - http://localhost:8081/swagger-ui.html (Care-Encounter)
 - http://localhost:8082/swagger-ui.html (Journal)
@@ -93,6 +101,11 @@ Each service exposes Swagger UI at `/swagger-ui.html`:
 - http://localhost:8090/swagger-ui.html (Medication)
 - http://localhost:8091/swagger-ui.html (Referral)
 - http://localhost:8092/swagger-ui.html (Lab)
+- http://localhost:8093/api/v1/forms/swagger-ui (Forms)
+- http://localhost:8094/api/v1/certificates/swagger-ui (Certificates)
+- http://localhost:8095/api/v1/consent/swagger-ui (Consent)
+- http://localhost:8096/api/v1/audit/swagger-ui (Audit)
+- http://localhost:8097/api/v1/coding/swagger-ui (Coding)
 
 ### FHIR Endpoints
 
@@ -153,16 +166,21 @@ modules/
 ├── care-encounter/    # A2 - Care Encounters
 ├── journal/           # A3 - Clinical Documentation
 ├── triage/            # A4 - Triage & Assessment
+├── booking/           # A5 - Appointment Scheduling
+├── referral/          # A6 - Referral Workflow
+├── medication/        # A7 - Prescription Management
+├── lab/               # A8 - Lab Orders & Results
+├── forms/             # A13 - Dynamic Forms
 ├── task/              # B1 - Task & Workflow
-├── booking/           # B2 - Appointment Scheduling
-├── medication/        # B3 - Prescription Management
-├── referral/          # B4 - Referral Workflow
-├── lab/               # B5 - Lab Orders & Results
+├── coding/            # B4 - Code Systems (ICD-10, KVÅ, ATC)
+├── certificates/      # B5 - Medical Certificates
+├── consent/           # C1 - Consent & Access Blocks
 ├── authorization/     # C2 - Authorization (RBAC+ABAC)
-├── audit/             # C3 - Audit & Logging
+├── audit/             # C3 - PDL-compliant Audit Logging
+├── notification/      # D4 - Notifications & Events
+├── integration/       # E1 - API Gateway & FHIR
 ├── events/            # Shared - Domain Events
-├── notification/      # D1 - Notifications
-└── integration/       # E1 - API Gateway & FHIR
+└── frontend/          # React Web Application
 ```
 
 ### Key Design Principles
@@ -184,12 +202,21 @@ modules/
 | HSA-ID | 1.2.752.129.2.1.4.1 | Healthcare personnel identifier |
 
 ### Supported Code Systems
-| System | Description |
-|--------|-------------|
-| ICD-10-SE | Swedish ICD-10 diagnoses |
-| KVÅ | Swedish procedure codes |
-| SNOMED CT-SE | Swedish SNOMED CT edition |
-| RETTS | Emergency triage levels |
+| System | Description | Module |
+|--------|-------------|--------|
+| ICD-10-SE | Swedish ICD-10 diagnoses | B4 Coding |
+| KVÅ | Swedish procedure codes | B4 Coding |
+| ATC | Medication classification | B4 Coding |
+| SNOMED CT-SE | Swedish SNOMED CT edition | — |
+| RETTS | Emergency triage levels | A4 Triage |
+
+### Medical Certificates
+| Type | Description |
+|------|-------------|
+| FK7263 | Sjukintyg (sick leave certificate) |
+| FK7804 | Läkarintyg för sjukpenning |
+| FK7800 | Läkarutlåtande för aktivitetsersättning |
+| DOD | Dödsbevis (death certificate) |
 
 ## License
 
