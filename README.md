@@ -49,7 +49,7 @@
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-org/curanexus.git
+git clone https://github.com/curanexus/curanexus.git
 cd curanexus
 
 # 2. Copy environment variables
@@ -158,29 +158,33 @@ docker-compose --profile dev up -d
 - **API**: REST with OpenAPI/Swagger
 - **FHIR**: R4 via HAPI FHIR 7.0.2
 
-### Module Structure
+### Project Structure
 
 ```
-modules/
-├── patient/           # A1 - Patient Identity
-├── care-encounter/    # A2 - Care Encounters
-├── journal/           # A3 - Clinical Documentation
-├── triage/            # A4 - Triage & Assessment
-├── booking/           # A5 - Appointment Scheduling
-├── referral/          # A6 - Referral Workflow
-├── medication/        # A7 - Prescription Management
-├── lab/               # A8 - Lab Orders & Results
-├── forms/             # A13 - Dynamic Forms
-├── task/              # B1 - Task & Workflow
-├── coding/            # B4 - Code Systems (ICD-10, KVÅ, ATC)
-├── certificates/      # B5 - Medical Certificates
-├── consent/           # C1 - Consent & Access Blocks
-├── authorization/     # C2 - Authorization (RBAC+ABAC)
-├── audit/             # C3 - PDL-compliant Audit Logging
-├── notification/      # D4 - Notifications & Events
-├── integration/       # E1 - API Gateway & FHIR
-├── events/            # Shared - Domain Events
-└── frontend/          # React Web Application
+curanexus/
+├── frontend/              # React Web Application (root level)
+├── modules/
+│   ├── patient/           # A1 - Patient Identity
+│   ├── care-encounter/    # A2 - Care Encounters
+│   ├── journal/           # A3 - Clinical Documentation
+│   ├── triage/            # A4 - Triage & Assessment
+│   ├── booking/           # A5 - Appointment Scheduling
+│   ├── referral/          # A6 - Referral Workflow
+│   ├── medication/        # A7 - Prescription Management
+│   ├── lab/               # A8 - Lab Orders & Results
+│   ├── forms/             # A13 - Dynamic Forms
+│   ├── task/              # B1 - Task & Workflow
+│   ├── coding/            # B4 - Code Systems (ICD-10, KVÅ, ATC)
+│   ├── certificates/      # B5 - Medical Certificates
+│   ├── consent/           # C1 - Consent & Access Blocks
+│   ├── authorization/     # C2 - Authorization (RBAC+ABAC)
+│   ├── audit/             # C3 - PDL-compliant Audit Logging
+│   ├── notification/      # D4 - Notifications & Events
+│   ├── integration/       # E1 - API Gateway & FHIR
+│   └── events/            # Shared - Domain Events
+├── docker/                # Docker configuration
+├── scripts/               # Build and test scripts
+└── docs/                  # Documentation
 ```
 
 ### Key Design Principles

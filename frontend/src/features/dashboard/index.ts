@@ -1,1 +1,8 @@
 export { DashboardPage } from './DashboardPage'
+export { DoctorDashboard } from './DoctorDashboard'
+export { NurseDashboard } from './NurseDashboard'
+export { ManagerDashboard } from './ManagerDashboard'
+export { DpoDashboard } from './DpoDashboard'
+export { AdminDashboard } from './AdminDashboard'
+export { SecretaryDashboard } from './SecretaryDashboard'
+export { ItDashboard } from './ItDashboard'

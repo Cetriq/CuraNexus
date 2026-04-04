@@ -55,15 +55,35 @@ mvn spring-boot:run -pl modules/patient
 
 ## Architecture
 
-### Core Modules (Bounded Contexts)
-Three primary modules form the system core:
-1. **Vårdkontakt (Care Contact)** – All care starts here
-2. **Journal** – All care is documented here (output from flow)
-3. **Uppgifter (Tasks)** – All care is executed here
+See `ARCHITECTURE.md` for detailed decisions on service boundaries and deployment.
+
+### Core Modules (MVP Priority)
+
+These 5 modules form the system core and should have deep implementation before others:
+
+| Priority | Module | Description |
+|----------|--------|-------------|
+| 1 | Patient (A1) | Base data model |
+| 2 | Care Encounter (A2) | All care starts here |
+| 3 | Journal (A3) | All care documented here |
+| 4 | Task (B1) | All care executed here |
+| 5 | Authorization (C2) | Access control |
 
 Each module must contain: API layer, Service layer, Domain model, Persistence layer.
 
 Modules communicate only via API or Events – no direct dependencies.
+
+### Project Structure
+
+```
+curanexus/
+├── frontend/          # React frontend (root level, NOT under modules/)
+├── modules/           # Backend Java modules
+├── docker/            # Docker configuration
+└── scripts/           # Build and test scripts
+```
+
+**Important:** Frontend lives at project root, not under modules/.
 
 ### Key Principles
 1. **Flow First** – Features map to care processes, no isolated journal-only functionality
@@ -123,11 +143,12 @@ Never escalate autonomy without instruction.
 
 ### On Continue
 1. Read CLAUDE.md
-2. Read latest session ledger
-3. Read latest summary
-4. Read decisions.md (if exists)
-5. Validate repo state
-6. Continue from defined next step
+2. Read ARCHITECTURE.md
+3. Read latest session ledger
+4. Read latest summary
+5. Read decisions.md (if exists)
+6. Validate repo state
+7. Continue from defined next step
 
 ## Security Rules
 

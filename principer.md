@@ -1,197 +1,235 @@
-Bra. Då översätter vi visionen till arkitektur- och designprinciper för Cura Nexus – sådana som både kan styra utveckling (Claude) och fungera i upphandling.
+# Cura Nexus – Arkitektur- och designprinciper
 
-De ska vara:
-	•	tydliga
-	•	styrande (inte fluff)
-	•	möjliga att validera
-	•	användbara i CLAUDE.md
+Version: 2.0
+Senast uppdaterad: 2026-04-04
 
-⸻
+---
 
-Principer – Cura Nexus
-
-1. Vårdflödet är primärt
-
-Systemet ska modelleras utifrån vårdprocesser, inte dokument.
-	•	Alla funktioner ska kunna kopplas till ett vårdflöde
-	•	Journaldata ska uppstå som en konsekvens av aktiviteter
-	•	Det ska vara möjligt att följa en patients resa som ett sammanhängande flöde
-
-👉 Implikation: inga funktioner byggs “för journalen” isolerat
-
-⸻
-
-2. Strukturerad data som standard
-
-All information ska i första hand vara strukturerad och maskinläsbar.
-	•	Fri text är ett komplement, inte primär lagring
-	•	Data ska kunna återanvändas i beslutsstöd, analys och uppföljning
-	•	Datamodellen ska vara konsekvent över hela plattformen
-
-👉 Implikation: API och datamodell styr implementationen
-
-⸻
-
-3. En källa till sanning per informationsobjekt
-
-Varje typ av information ska ha en tydlig ägare.
-	•	Ingen duplicering av kärndata
-	•	Synkronisering ska undvikas – referenser ska användas
-	•	Masterdata ska vara centraliserad
-
-👉 Implikation: integrationsdesign blir avgörande
-
-⸻
-
-4. Kontextbaserad åtkomst (Zero Trust i praktiken)
-
-Åtkomst till information ska styras av kontext, inte bara roll.
-	•	Vårdrelation ska vara grund för åtkomst
-	•	Tid, plats och uppdrag ska påverka behörighet
-	•	Alla åtkomster ska vara spårbara
-
-👉 Implikation: RBAC räcker inte → ABAC krävs
-
-⸻
-
-5. Säkerhet och spårbarhet är inbyggt från början
-
-Systemet ska vara designat för revision, inte kompletteras i efterhand.
-	•	Alla ändringar ska vara spårbara
-	•	Alla åtkomster ska loggas
-	•	Alla kritiska beslut ska kunna rekonstrueras
-
-👉 Implikation: audit är en kärnfunktion, inte en sidofunktion
-
-⸻
-
-6. API-first som grundprincip
-
-All funktionalitet ska vara tillgänglig via väldefinierade API:er.
-	•	UI får aldrig vara den enda vägen till funktion
-	•	Alla integrationer ska gå via standardiserade gränssnitt
-	•	API-kontrakt ska definieras före implementation
-
-👉 Implikation: OpenAPI är förstaklassartefakt
-
-⸻
-
-7. Modulär arkitektur med tydliga gränser
-
-Systemet ska delas upp i tydliga domäner (bounded contexts).
-	•	Moduler ska vara löst kopplade
-	•	Interna beroenden ska minimeras
-	•	Kommunikation mellan moduler ska ske via definierade kontrakt
-
-👉 Implikation: möjliggör skalning och utbytbarhet
-
-⸻
-
-8. Event-driven där det ger värde
-
-Systemet ska reagera på händelser, inte bara anrop.
-	•	Viktiga förändringar ska generera events
-	•	Andra moduler ska kunna prenumerera
-	•	Event ska vara spårbara och versionerade
-
-👉 Implikation: stöd för automation och realtid
-
-⸻
-
-9. AI som assistent – aldrig som ensam beslutsfattare
-
-AI ska stödja, inte ersätta, medicinska beslut.
-	•	AI ska vara transparent och förklarbar
-	•	AI ska kunna stängas av per funktion
-	•	AI får inte träna på data utan explicit godkännande
-
-👉 Implikation: AI integreras som tjänstelager, inte kärna
-
-⸻
-
-10. Människa i centrum – minimal administration
-
-Systemet ska minska, inte öka, administrativ belastning.
-	•	Information ska registreras en gång
-	•	Uppgifter ska automatiseras där möjligt
-	•	UI ska vara anpassat efter roll och situation
-
-👉 Implikation: workflow och UX är kritiska delar
-
-⸻
-
-11. Plattform, inte produkt
-
-Cura Nexus ska vara en plattform för vidareutveckling.
-	•	Tredjepartsfunktioner ska kunna kopplas in
-	•	Intern utveckling ska kunna ske utan att bryta kärnan
-	•	Funktioner ska kunna ersättas utan total ombyggnad
-
-👉 Implikation: liknar din DIS-tools-tanke
-
-⸻
-
-12. Nationell interoperabilitet som krav, inte tillval
-
-Systemet ska fungera i svensk vård från dag ett.
-	•	Stöd för nationella tjänster
-	•	Standardiserade format
-	•	Ingen inlåsning i proprietära strukturer
-
-👉 Implikation: FHIR och öppna standarder
-
-⸻
-
-13. Skalbarhet från start
-
-Systemet ska designas för stora organisationer.
-	•	Ska fungera för 100 000 användare
-	•	Ska hantera hög samtidighet
-	•	Ska kunna delas upp per region/organisation
-
-👉 Implikation: stateless tjänster + skalbar databasstrategi
-
-⸻
-
-14. Testbarhet och verifierbarhet
-
-All funktionalitet ska kunna testas automatiskt.
-	•	API:er ska vara testbara utan UI
-	•	Testdata ska kunna genereras
-	•	Regressioner ska upptäckas automatiskt
-
-👉 Implikation: test är en del av definition of done
-
-⸻
-
-15. Förändring utan kaos
-
-Systemet ska kunna förändras utan att destabiliseras.
-	•	Versionshantering av API:er
-	•	Migrationsstrategi för data
-	•	Bakåtkompatibilitet där det krävs
-
-👉 Implikation: förändring är designad, inte undantag
-
-⸻
-
-16. AI-driven utveckling under kontroll
-
-Utvecklingen ska vara AI-driven men styrd.
-	•	All kod ska följa definierade regler
-	•	AI ska arbeta utifrån kontrakt och mallar
-	•	Alla förändringar ska vara spårbara
-
-👉 Implikation: Claude Runtime blir en kärndel
-
-⸻
-
-🔥 Sammanfattning (det här är kärnan)
+## Sammanfattning
 
 Cura Nexus bygger på fyra fundament:
-	1.	Flöde före dokument
-	2.	Struktur före frihet
-	3.	Säkerhet före bekvämlighet
-	4.	Plattform före system
 
-⸻
+1. **Flöde före dokument** – vårdprocessen styr, journalen är output
+2. **Struktur före frihet** – maskinläsbar data som standard
+3. **Säkerhet före bekvämlighet** – audit och access inbyggt från start
+4. **Plattform före system** – utbyggbart och utbytbart
+
+---
+
+## Principer
+
+### 1. Vårdflödet är primärt
+
+Systemet modelleras utifrån vårdprocesser, inte dokument.
+
+- Alla funktioner kopplas till ett vårdflöde
+- Journaldata uppstår som konsekvens av aktiviteter
+- En patients resa ska kunna följas som sammanhängande flöde
+
+**Implikation:** Inga funktioner byggs "för journalen" isolerat.
+
+---
+
+### 2. Strukturerad data som standard
+
+All information ska i första hand vara strukturerad och maskinläsbar.
+
+- Fri text är komplement, inte primär lagring
+- Data ska kunna återanvändas i beslutsstöd, analys och uppföljning
+- Datamodellen ska vara konsekvent över hela plattformen
+
+**Implikation:** API och datamodell styr implementationen.
+
+---
+
+### 3. En källa till sanning per informationsobjekt
+
+Varje typ av information har en tydlig ägare.
+
+- Ingen duplicering av kärndata
+- Synkronisering undviks – referenser används
+- Masterdata är centraliserad
+
+**Implikation:** Integrationsdesign blir avgörande.
+
+---
+
+### 4. Kontextbaserad åtkomst
+
+Åtkomst till information styrs av kontext, inte bara roll.
+
+- Vårdrelation är grund för åtkomst
+- Tid, plats och uppdrag påverkar behörighet
+- Alla åtkomster är spårbara
+
+**Implikation:** RBAC räcker inte – ABAC krävs.
+
+---
+
+### 5. Säkerhet och spårbarhet inbyggt från början
+
+Systemet är designat för revision, inte kompletterat i efterhand.
+
+- Alla ändringar är spårbara
+- Alla åtkomster loggas
+- Alla kritiska beslut kan rekonstrueras
+
+**Implikation:** Audit är en kärnfunktion, inte sidofunktion.
+
+---
+
+### 6. API-first som grundprincip
+
+All funktionalitet är tillgänglig via väldefinierade API:er.
+
+- UI är aldrig enda vägen till funktion
+- Alla integrationer går via standardiserade gränssnitt
+- API-kontrakt definieras före implementation
+
+**Implikation:** OpenAPI är förstaklassartefakt.
+
+---
+
+### 7. Modulär arkitektur med tydliga gränser
+
+Systemet delas upp i tydliga domäner (bounded contexts).
+
+- Moduler är löst kopplade
+- Interna beroenden minimeras
+- Kommunikation mellan moduler sker via definierade kontrakt
+
+**Implikation:** Möjliggör skalning och utbytbarhet.
+
+---
+
+### 8. Event-driven där det ger värde
+
+Systemet reagerar på händelser, inte bara anrop.
+
+- Viktiga förändringar genererar events
+- Andra moduler kan prenumerera
+- Events är spårbara och versionerade
+
+**Implikation:** Stöd för automation och realtid.
+
+---
+
+### 9. AI som assistent – aldrig som ensam beslutsfattare
+
+AI stödjer, men ersätter inte, medicinska beslut.
+
+- AI är transparent och förklarbar
+- AI kan stängas av per funktion
+- AI tränar inte på data utan explicit godkännande
+
+**Implikation:** AI integreras som tjänstelager, inte kärna.
+
+---
+
+### 10. Människa i centrum – minimal administration
+
+Systemet minskar, inte ökar, administrativ belastning.
+
+- Information registreras en gång
+- Uppgifter automatiseras där möjligt
+- UI anpassas efter roll och situation
+
+**Implikation:** Workflow och UX är kritiska delar.
+
+---
+
+### 11. Plattform, inte produkt
+
+Cura Nexus är en plattform för vidareutveckling.
+
+- Tredjepartsfunktioner kan kopplas in
+- Intern utveckling kan ske utan att bryta kärnan
+- Funktioner kan ersättas utan total ombyggnad
+
+**Implikation:** Extensibilitet är designat från start.
+
+---
+
+### 12. Nationell interoperabilitet som krav
+
+Systemet fungerar i svensk vård från dag ett.
+
+- Stöd för nationella tjänster
+- Standardiserade format
+- Ingen inlåsning i proprietära strukturer
+
+**Implikation:** FHIR och öppna standarder.
+
+---
+
+### 13. Skalbarhet från start
+
+Systemet är designat för stora organisationer.
+
+- Fungerar för 100 000 användare
+- Hanterar hög samtidighet
+- Kan delas upp per region/organisation
+
+**Implikation:** Stateless tjänster + skalbar databasstrategi.
+
+---
+
+### 14. Testbarhet och verifierbarhet
+
+All funktionalitet kan testas automatiskt.
+
+- API:er är testbara utan UI
+- Testdata kan genereras
+- Regressioner upptäcks automatiskt
+
+**Implikation:** Test är del av definition of done.
+
+---
+
+### 15. Förändring utan kaos
+
+Systemet kan förändras utan destabilisering.
+
+- Versionshantering av API:er
+- Migrationsstrategi för data
+- Bakåtkompatibilitet där det krävs
+
+**Implikation:** Förändring är designad, inte undantag.
+
+---
+
+### 16. AI-driven utveckling under kontroll
+
+Utvecklingen är AI-driven men styrd.
+
+- All kod följer definierade regler
+- AI arbetar utifrån kontrakt och mallar
+- Alla förändringar är spårbara
+
+**Implikation:** Claude arbetar inom definierade ramar.
+
+---
+
+## Validering
+
+Varje princip ska kunna valideras:
+
+| Princip | Valideringsfråga |
+|---------|------------------|
+| 1 | Är funktionen kopplad till ett vårdflöde? |
+| 2 | Är data strukturerad och maskinläsbar? |
+| 3 | Finns det duplicerad data? |
+| 4 | Krävs vårdrelation för åtkomst? |
+| 5 | Loggas alla åtkomster? |
+| 6 | Finns OpenAPI-specifikation? |
+| 7 | Är modulen självständig? |
+| 8 | Genereras events vid viktiga händelser? |
+| 9 | Kan AI-funktionen stängas av? |
+| 10 | Minskar funktionen administrativt arbete? |
+| 11 | Kan komponenten bytas ut? |
+| 12 | Följer vi svenska standarder? |
+| 13 | Fungerar det under last? |
+| 14 | Finns automatiska tester? |
+| 15 | Är ändringen bakåtkompatibel? |
+| 16 | Följer AI-genererad kod våra regler? |
+

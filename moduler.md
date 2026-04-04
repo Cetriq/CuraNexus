@@ -1,356 +1,367 @@
-Bra att vi går tillbaka till modulerna nu — det är här allt hänger ihop.
-Jag ger dig en ren, konsoliderad och “Claude-ready” modullista för Cura Nexus.
+# Cura Nexus – Modullista
 
-Jag har:
-	•	rensat överlapp
-	•	tydliggjort ansvar
-	•	gjort den kompatibel med bounded contexts
-	•	gjort den redo att brytas till REQ-XXX
+Version: 2.0
+Senast uppdaterad: 2026-04-04
 
-⸻
+---
 
-🧩 Cura Nexus – Modullista (v2, konsoliderad)
+## Översikt
 
-🟢 A. Patientnära vårdmoduler (kärnan)
+Cura Nexus är uppbyggt av moduler organiserade i fem kategorier. Varje modul är en bounded context med tydligt definierat ansvar.
 
-A1. Patient- och identitetsmodul
+**Tre verkliga kärnor:**
+1. **Vårdkontakt (A2)** – alla vårdkontakter börjar här
+2. **Journal (A3)** – all vård dokumenteras här
+3. **Uppgifter (B1)** – all vård genomförs här
+
+Allt annat är: input, output, styrning eller optimering.
+
+---
+
+## A. Patientnära vårdmoduler (kärnan)
+
+### A1. Patient- och identitetsmodul
 
 Grundidentitet och relationer.
-	•	patientidentitet
-	•	kontaktuppgifter
-	•	närstående/ombud
-	•	skyddade uppgifter
-	•	samtycken (basnivå)
 
-⸻
+- Patientidentitet (personnummer, samordningsnummer)
+- Kontaktuppgifter
+- Närstående och ombud
+- Skyddade uppgifter
+- Samtycken (basnivå)
 
-A2. Vårdkontakt- och ärendemodul
+---
 
-All vård sker via ett ärende.
-	•	vårdkontakter
-	•	triagerat inflöde (koppling A4)
-	•	status och livscykel
-	•	ansvar
-	•	koppling till alla andra moduler
+### A2. Vårdkontakt- och ärendemodul ⭐ KÄRNA
 
-👉 Detta är navet i systemet
+All vård sker via en vårdkontakt.
 
-⸻
+- Vårdkontakter och livscykel
+- Triagerat inflöde (koppling A4)
+- Status och ansvar
+- Koppling till alla andra moduler
 
-A3. Journalmodul
+---
+
+### A3. Journalmodul ⭐ KÄRNA
 
 Medicinsk dokumentation.
-	•	anteckningar
-	•	diagnoser
-	•	åtgärder
-	•	observationer
-	•	tidslinje
-	•	signering
 
-👉 Journal = output från flödet
+- Anteckningar
+- Diagnoser (ICD-10-SE)
+- Åtgärder (KVÅ)
+- Observationer
+- Tidslinje
+- Signering
 
-⸻
+---
 
-A4. Triage- och bedömningsmodul
+### A4. Triage- och bedömningsmodul
 
 Första medicinska bedömning.
-	•	symtombaserad triage
-	•	prioritering
-	•	vårdnivåbeslut
-	•	beslutsstöd
 
-⸻
+- Symtombaserad triage (RETTS-inspirerad)
+- Prioritering
+- Vårdnivåbeslut
+- Beslutsstöd
 
-A5. Boknings- och tidmodul
+---
+
+### A5. Boknings- och tidmodul
 
 Matchar behov mot resurser.
-	•	bokning/ombokning
-	•	väntelistor
-	•	kallelser
-	•	resurskoppling
 
-⸻
+- Bokning och ombokning
+- Väntelistor
+- Kallelser
+- Resurskoppling
 
-A6. Remiss- och samverkansmodul
+---
+
+### A6. Remiss- och samverkansmodul
 
 Flöden mellan vårdgivare.
-	•	remisser
-	•	remissbedömning
-	•	svar
-	•	statusspårning
 
-⸻
+- Remisser
+- Remissbedömning
+- Svar
+- Statusspårning
 
-A7. Läkemedels- och ordinationsmodul
+---
+
+### A7. Läkemedels- och ordinationsmodul
 
 Läkemedelshantering.
-	•	ordination
-	•	läkemedelslista
-	•	interaktionskontroller
-	•	ändringar
 
-⸻
+- Ordination
+- Läkemedelslista
+- Interaktionskontroller
+- Ändringar
 
-A8. Prov- och svarshanteringsmodul
+---
+
+### A8. Prov- och svarshanteringsmodul
 
 Lab och analyser.
-	•	beställning
-	•	svar
-	•	avvikelsehantering
-	•	uppföljning
 
-⸻
+- Beställning
+- Svar
+- Avvikelsehantering
+- Uppföljning
 
-A9. Undersöknings- och bildmodul
+---
+
+### A9. Undersöknings- och bildmodul
 
 Röntgen och diagnostik.
-	•	beställning
-	•	svar/utlåtande
-	•	bildlänkning
 
-⸻
+- Beställning
+- Svar och utlåtande
+- Bildlänkning
 
-A10. Vårdplaneringsmodul
+---
+
+### A10. Vårdplaneringsmodul
 
 Långsiktig vård.
-	•	vårdplan
-	•	mål
-	•	insatser
-	•	uppföljning
 
-⸻
+- Vårdplan
+- Mål
+- Insatser
+- Uppföljning
 
-A11. Vårdmötesmodul
+---
+
+### A11. Vårdmötesmodul
 
 Alla typer av vårdkontakter.
-	•	fysiskt
-	•	video
-	•	telefon
-	•	asynkron
 
-⸻
+- Fysiskt besök
+- Video
+- Telefon
+- Asynkron kommunikation
 
-A12. Patientkommunikationsmodul
+---
+
+### A12. Patientkommunikationsmodul
 
 Dialog med patient.
-	•	meddelanden
-	•	kallelser
-	•	uppföljning
-	•	egenrapportering
 
-⸻
+- Meddelanden
+- Kallelser
+- Uppföljning
+- Egenrapportering
 
-A13. Formulär- och insamlingsmodul
+---
+
+### A13. Formulär- och insamlingsmodul
 
 Strukturerad input.
-	•	anamnes
-	•	screening
-	•	formulär
-	•	validering
 
-⸻
+- Anamnesformulär
+- Screening
+- Dynamiska formulär
+- Validering
 
-🟡 B. Operativa verksamhetsmoduler
+---
 
-B1. Uppgifts- och arbetsflödesmodul
+## B. Operativa verksamhetsmoduler
+
+### B1. Uppgifts- och arbetsflödesmodul ⭐ KÄRNA
 
 Execution layer.
-	•	tasks
-	•	bevakningar
-	•	påminnelser
-	•	delegering
 
-👉 Binder ihop beslut → handling
+- Tasks
+- Bevakningar
+- Påminnelser
+- Delegering
 
-⸻
+---
 
-B2. Resurs- och kapacitetsmodul
+### B2. Resurs- och kapacitetsmodul
 
 Intern optimering.
-	•	bemanning
-	•	rum/utrustning
-	•	beläggning
-	•	kapacitetsplanering
 
-⸻
+- Bemanning
+- Rum och utrustning
+- Beläggning
+- Kapacitetsplanering
 
-B3. Ekonomi- och ersättningsmodul
+---
+
+### B3. Ekonomi- och ersättningsmodul
 
 Ekonomisk koppling.
-	•	patientavgifter
-	•	ersättningsdata
-	•	fakturaunderlag
 
-⸻
+- Patientavgifter
+- Ersättningsdata
+- Fakturaunderlag
 
-B4. Kodnings- och klassificeringsmodul
+---
+
+### B4. Kodnings- och klassificeringsmodul
 
 Standardisering.
-	•	ICD
-	•	KVÅ
-	•	klassificering
-	•	kvalitetssäkring
 
-⸻
+- ICD-10-SE
+- KVÅ
+- ATC
+- Klassificering och kvalitetssäkring
 
-B5. Intygs- och dokumentmodul
+---
+
+### B5. Intygs- och dokumentmodul
 
 Formella dokument.
-	•	intyg
-	•	dokumentutbyte
-	•	signering
 
-⸻
+- Intyg (FK7263, FK7804, etc.)
+- Dokumentutbyte
+- Signering
 
-B6. Kvalitets- och avvikelsemodul
+---
+
+### B6. Kvalitets- och avvikelsemodul
 
 Patientsäkerhet.
-	•	avvikelser
-	•	incidenter
-	•	analys
-	•	förbättring
 
-⸻
+- Avvikelser
+- Incidenter
+- Analys
+- Förbättring
 
-🔵 C. Styrning, säkerhet och efterlevnad
+---
 
-C1. Samtyckes- och åtkomstmodul
+## C. Styrning, säkerhet och efterlevnad
+
+### C1. Samtyckes- och åtkomstmodul
 
 Dataskydd.
-	•	samtycke
-	•	spärrar
-	•	nödöppning
 
-⸻
+- Samtycke
+- Spärrar
+- Nödöppning
 
-C2. Behörighets- och rollmodul
+---
+
+### C2. Behörighets- och rollmodul
 
 Access control.
-	•	RBAC + ABAC
-	•	delegation
-	•	kontextstyrning
 
-⸻
+- RBAC + ABAC
+- Delegation
+- Kontextstyrning
 
-C3. Logg- och auditmodul
+---
+
+### C3. Logg- och auditmodul
 
 Full spårbarhet.
-	•	åtkomstlogg
-	•	ändringslogg
-	•	revisionsstöd
 
-⸻
+- Åtkomstlogg
+- Ändringslogg
+- Revisionsstöd
 
-C4. Masterdata- och regelverksmodul
+---
+
+### C4. Masterdata- och regelverksmodul
 
 Sanningens källa.
-	•	kodverk
-	•	organisation
-	•	regler
-	•	mallar
 
-⸻
+- Kodverk
+- Organisation
+- Regler
+- Mallar
 
-C5. Administrationsmodul
+---
+
+### C5. Administrationsmodul
 
 Systemstyrning.
-	•	konfiguration
-	•	köer
-	•	inställningar
 
-⸻
+- Konfiguration
+- Köer
+- Inställningar
 
-🟣 D. Intelligens och uppföljning
+---
 
-D1. Beslutsstödsmodul
+## D. Intelligens och uppföljning
+
+### D1. Beslutsstödsmodul
 
 Regler och riktlinjer.
-	•	varningar
-	•	rekommendationer
-	•	vårdprogram
 
-⸻
+- Varningar
+- Rekommendationer
+- Vårdprogram
 
-D2. AI- och automationsmodul
+---
+
+### D2. AI- och automationsmodul
 
 AI som tjänstelager.
-	•	sammanfattning
-	•	kodningsstöd
-	•	prediktion
-	•	automation
 
-⸻
+- Sammanfattning
+- Kodningsstöd
+- Prediktion
+- Automation
 
-D3. Analys- och rapportmodul
+---
+
+### D3. Analys- och rapportmodul
 
 Styrning.
-	•	dashboards
-	•	KPI
-	•	uppföljning
 
-⸻
+- Dashboards
+- KPI
+- Uppföljning
 
-D4. Notifierings- och händelsemodul
+---
+
+### D4. Notifierings- och händelsemodul
 
 Event motor.
-	•	notifieringar
-	•	event publishing
-	•	prenumerationer
 
-⸻
+- Notifieringar
+- Event publishing
+- Prenumerationer
 
-⚙️ E. Plattform
+---
 
-E1. Integrationsmodul
+## E. Plattform
+
+### E1. Integrationsmodul
 
 All extern kommunikation.
-	•	API gateway
-	•	FHIR
-	•	externa system
-	•	köer
 
-⸻
+- API Gateway
+- FHIR R4
+- Externa system
+- Köer
 
-E2. Plattformstjänster
+---
+
+### E2. Plattformstjänster
 
 Teknisk bas.
-	•	auth
-	•	logging
-	•	storage
-	•	cache
-	•	observability
 
-⸻
+- Auth
+- Logging
+- Storage
+- Cache
+- Observability
 
-🔥 Viktig observation (du kommer gilla denna)
+---
 
-Om vi kokar ner allt:
+## Rekommenderad implementation
 
-👉 3 verkliga kärnor i systemet
-	1.	Vårdkontakt (A2) – allt börjar här
-	2.	Journal (A3) – allt dokumenteras här
-	3.	Uppgifter (B1) – allt genomförs här
+För ett minimalt fungerande vårdsystem, implementera dessa först:
 
-Allt annat är:
-	•	input
-	•	output
-	•	styrning
-	•	optimering
+| Prioritet | Modul | Beskrivning |
+|-----------|-------|-------------|
+| 1 | A1 Patient | Basdatamodell |
+| 2 | A2 Vårdkontakt | Navet i systemet |
+| 3 | A3 Journal | Dokumentation |
+| 4 | B1 Uppgifter | Execution layer |
+| 5 | C2 Behörighet | Access control |
+| 6 | E1 Integration | API Gateway och FHIR |
 
-⸻
-
-🧠 Rekommenderad första implementation (för Claude)
-
-För att testa hela modellen:
-
-👉 Börja med dessa moduler:
-	1.	A1 – Patient
-	2.	A2 – Vårdkontakt
-	3.	A3 – Journal
-	4.	B1 – Uppgifter
-	5.	C2 – Behörighet
-	6.	E1 – Integration
-
-Det räcker för att bygga ett minimalt fungerande vårdsystem.
-
-⸻

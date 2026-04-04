@@ -1,29 +1,15 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import {
-  Users,
-  Stethoscope,
-  ClipboardList,
-  Calendar,
-  Pill,
-  FileText,
-  FlaskConical,
-  LayoutDashboard,
-} from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Patienter', href: '/patients', icon: Users },
-  { name: 'Vårdkontakter', href: '/encounters', icon: Stethoscope },
-  { name: 'Uppgifter', href: '/tasks', icon: ClipboardList },
-  { name: 'Bokningar', href: '/booking', icon: Calendar },
-  { name: 'Läkemedel', href: '/medication', icon: Pill },
-  { name: 'Remisser', href: '/referrals', icon: FileText },
-  { name: 'Labb', href: '/lab', icon: FlaskConical },
-]
+import { useUser } from '@/contexts/UserContext'
+import { getNavigationForRole } from '@/config/navigation'
+import { RoleSelector } from '@/components/RoleSelector'
 
 export function Sidebar() {
   const location = useLocation()
+  const { user } = useUser()
+
+  // Hämta navigation baserat på användarens roll
+  const navigation = getNavigationForRole(user.role)
 
   return (
     <div className="flex h-full w-64 flex-col bg-sidebar border-r border-sidebar-border">
@@ -51,20 +37,8 @@ export function Sidebar() {
           )
         })}
       </nav>
-      <div className="border-t border-sidebar-border p-4">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
-            AK
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">
-              Anna Karlsson
-            </p>
-            <p className="text-xs text-muted-foreground truncate">
-              Läkare
-            </p>
-          </div>
-        </div>
+      <div className="border-t border-sidebar-border p-3">
+        <RoleSelector />
       </div>
     </div>
   )
