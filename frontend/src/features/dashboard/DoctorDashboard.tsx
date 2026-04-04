@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { encountersApi } from '@/api'
+import { encountersApi, patientsApi } from '@/api'
 import {
   Users,
   Stethoscope,
@@ -16,6 +17,20 @@ export function DoctorDashboard() {
     queryKey: ['encounters', 'active'],
     queryFn: encountersApi.getActive,
   })
+
+  const { data: patients } = useQuery({
+    queryKey: ['patients'],
+    queryFn: patientsApi.getAll,
+  })
+
+  // Create a map of patientId -> patient name
+  const patientNames = useMemo(() => {
+    const map = new Map<string, string>()
+    patients?.forEach(p => {
+      map.set(p.id, `${p.givenName} ${p.familyName}`)
+    })
+    return map
+  }, [patients])
 
   const inProgress = activeEncounters?.filter(e => e.status === 'IN_PROGRESS') ?? []
   const planned = activeEncounters?.filter(e => e.status === 'PLANNED') ?? []
@@ -86,7 +101,7 @@ export function DoctorDashboard() {
                     className="flex items-center justify-between p-3 rounded-lg border"
                   >
                     <div>
-                      <p className="font-medium">{encounter.patientName || 'Okänd patient'}</p>
+                      <p className="font-medium">{patientNames.get(encounter.patientId) || 'Okänd patient'}</p>
                       <p className="text-sm text-muted-foreground">
                         {encounter.chiefComplaint || 'Ingen sökorsak angiven'}
                       </p>
@@ -114,7 +129,7 @@ export function DoctorDashboard() {
                     className="flex items-center justify-between p-3 rounded-lg border"
                   >
                     <div>
-                      <p className="font-medium">{encounter.patientName || 'Okänd patient'}</p>
+                      <p className="font-medium">{patientNames.get(encounter.patientId) || 'Okänd patient'}</p>
                       <p className="text-sm text-muted-foreground">
                         {encounter.chiefComplaint || 'Ingen sökorsak angiven'}
                       </p>

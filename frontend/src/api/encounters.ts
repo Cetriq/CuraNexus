@@ -22,7 +22,8 @@ export const encountersApi = {
   },
 
   getByPatient: async (patientId: string): Promise<Encounter[]> => {
-    return apiClient.get<Encounter[]>(`${BASE_URL}/patient/${patientId}`)
+    const result = await apiClient.get<PageResponse<Encounter>>(`/api/encounter/patients/${patientId}/encounters`)
+    return result.content
   },
 
   getActive: async (): Promise<Encounter[]> => {
