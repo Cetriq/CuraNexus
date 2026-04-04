@@ -86,7 +86,7 @@ class EncounterServiceTest {
         UUID patientId = UUID.randomUUID();
         Encounter encounter = new Encounter(patientId, EncounterClass.OUTPATIENT);
 
-        when(encounterRepository.findById(encounterId)).thenReturn(Optional.of(encounter));
+        when(encounterRepository.findByIdWithReasons(encounterId)).thenReturn(Optional.of(encounter));
 
         // When
         EncounterDto result = encounterService.getEncounter(encounterId);
@@ -100,7 +100,7 @@ class EncounterServiceTest {
     void getEncounter_shouldThrowWhenNotFound() {
         // Given
         UUID encounterId = UUID.randomUUID();
-        when(encounterRepository.findById(encounterId)).thenReturn(Optional.empty());
+        when(encounterRepository.findByIdWithReasons(encounterId)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> encounterService.getEncounter(encounterId))

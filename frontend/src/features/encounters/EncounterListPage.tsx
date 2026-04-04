@@ -1,6 +1,7 @@
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { encountersApi } from '@/api'
+import { encountersApi, patientsApi } from '@/api'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { formatDateTime } from '@/lib/utils'
@@ -10,6 +11,19 @@ export function EncounterListPage() {
     queryKey: ['encounters'],
     queryFn: encountersApi.getAll,
   })
+
+  const { data: patients } = useQuery({
+    queryKey: ['patients'],
+    queryFn: patientsApi.getAll,
+  })
+
+  const patientNames = useMemo(() => {
+    const map = new Map<string, string>()
+    patients?.forEach(p => {
+      map.set(p.id, `${p.givenName} ${p.familyName}`)
+    })
+    return map
+  }, [patients])
 
   const activeEncounters = encounters?.filter(
     (e) => e.status === 'IN_PROGRESS' || e.status === 'PLANNED'
@@ -46,7 +60,7 @@ export function EncounterListPage() {
                         <div className="flex items-start justify-between">
                           <div>
                             <p className="font-semibold">
-                              {encounter.patientName || 'Okänd patient'}
+                              {patientNames.get(encounter.patientId) || 'Okänd patient'}
                             </p>
                             <p className="text-sm text-muted-foreground">
                               {encounter.chiefComplaint || 'Ingen sökorsak'}
@@ -62,14 +76,6 @@ export function EncounterListPage() {
                           >
                             {encounter.status === 'IN_PROGRESS' ? 'Pågående' : 'Planerad'}
                           </Badge>
-                        </div>
-                        <div className="mt-4 flex gap-2">
-                          {encounter.readyToStart && (
-                            <Badge variant="info">Redo att starta</Badge>
-                          )}
-                          {encounter.allTasksCompleted && (
-                            <Badge variant="success">Uppgifter klara</Badge>
-                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -98,13 +104,13 @@ export function EncounterListPage() {
                         <div className="flex items-start justify-between">
                           <div>
                             <p className="font-semibold">
-                              {encounter.patientName || 'Okänd patient'}
+                              {patientNames.get(encounter.patientId) || 'Okänd patient'}
                             </p>
                             <p className="text-sm text-muted-foreground">
                               {encounter.chiefComplaint || 'Ingen sökorsak'}
                             </p>
                             <p className="text-xs text-muted-foreground mt-2">
-                              {formatDateTime(encounter.endTime || encounter.updatedAt)}
+                              {formatDateTime(encounter.actualEndTime || encounter.updatedAt)}
                             </p>
                           </div>
                           <Badge variant="secondary">Avslutad</Badge>

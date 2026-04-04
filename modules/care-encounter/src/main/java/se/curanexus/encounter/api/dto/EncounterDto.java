@@ -3,6 +3,7 @@ package se.curanexus.encounter.api.dto;
 import se.curanexus.encounter.domain.*;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public record EncounterDto(
@@ -20,9 +21,22 @@ public record EncounterDto(
         Instant actualStartTime,
         Instant actualEndTime,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        List<EncounterReasonDto> reasons,
+        String chiefComplaint
 ) {
     public static EncounterDto from(Encounter encounter) {
+        List<EncounterReasonDto> reasonDtos = encounter.getReasons().stream()
+                .map(EncounterReasonDto::from)
+                .toList();
+
+        // Extract primary chief complaint for convenience
+        String chiefComplaint = encounter.getReasons().stream()
+                .filter(r -> r.getType() == ReasonType.CHIEF_COMPLAINT && r.isPrimary())
+                .findFirst()
+                .map(EncounterReason::getDisplayText)
+                .orElse(null);
+
         return new EncounterDto(
                 encounter.getId(),
                 encounter.getPatientId(),
@@ -38,7 +52,9 @@ public record EncounterDto(
                 encounter.getActualStartTime(),
                 encounter.getActualEndTime(),
                 encounter.getCreatedAt(),
-                encounter.getUpdatedAt()
+                encounter.getUpdatedAt(),
+                reasonDtos,
+                chiefComplaint
         );
     }
 }

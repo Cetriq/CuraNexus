@@ -68,24 +68,21 @@ public class EncounterService {
                 EncounterStatus.IN_PROGRESS,
                 EncounterStatus.ON_HOLD
         );
-        return encounterRepository.findByStatusIn(activeStatuses).stream()
+        return encounterRepository.findByStatusInWithReasons(activeStatuses).stream()
                 .map(EncounterSummaryDto::from)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public Page<EncounterSummaryDto> getPatientEncounters(UUID patientId, EncounterStatus status, Pageable pageable) {
-        if (status != null) {
-            return encounterRepository.findByPatientIdAndStatus(patientId, status, pageable)
-                    .map(EncounterSummaryDto::from);
-        }
-        return encounterRepository.findByPatientId(patientId, pageable)
-                .map(EncounterSummaryDto::from);
+        // Use searchEncounters which includes fetch join for reasons
+        return searchEncounters(patientId, status, null, null, null, null, pageable);
     }
 
     @Transactional(readOnly = true)
     public EncounterDto getEncounter(UUID encounterId) {
-        Encounter encounter = findEncounterOrThrow(encounterId);
+        Encounter encounter = encounterRepository.findByIdWithReasons(encounterId)
+                .orElseThrow(() -> new EncounterNotFoundException(encounterId));
         return EncounterDto.from(encounter);
     }
 

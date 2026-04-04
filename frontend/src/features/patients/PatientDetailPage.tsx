@@ -178,13 +178,13 @@ export function PatientDetailPage() {
                       <Badge
                         variant={
                           encounter.status === 'IN_PROGRESS' ? 'success' :
-                          encounter.status === 'COMPLETED' ? 'secondary' :
+                          encounter.status === 'FINISHED' || encounter.status === 'COMPLETED' ? 'secondary' :
                           encounter.status === 'PLANNED' ? 'warning' :
                           'outline'
                         }
                       >
                         {encounter.status === 'IN_PROGRESS' ? 'Pågående' :
-                         encounter.status === 'COMPLETED' ? 'Avslutad' :
+                         encounter.status === 'FINISHED' || encounter.status === 'COMPLETED' ? 'Avslutad' :
                          encounter.status === 'PLANNED' ? 'Planerad' :
                          encounter.status === 'CANCELLED' ? 'Makulerad' :
                          encounter.status}

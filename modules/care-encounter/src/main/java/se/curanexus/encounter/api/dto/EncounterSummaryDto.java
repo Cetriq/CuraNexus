@@ -13,9 +13,17 @@ public record EncounterSummaryDto(
         EncounterType type,
         String serviceType,
         Instant plannedStartTime,
-        Instant actualStartTime
+        Instant actualStartTime,
+        String chiefComplaint
 ) {
     public static EncounterSummaryDto from(Encounter encounter) {
+        // Extract primary chief complaint for convenience
+        String chiefComplaint = encounter.getReasons().stream()
+                .filter(r -> r.getType() == ReasonType.CHIEF_COMPLAINT && r.isPrimary())
+                .findFirst()
+                .map(EncounterReason::getDisplayText)
+                .orElse(null);
+
         return new EncounterSummaryDto(
                 encounter.getId(),
                 encounter.getPatientId(),
@@ -24,7 +32,8 @@ public record EncounterSummaryDto(
                 encounter.getType(),
                 encounter.getServiceType(),
                 encounter.getPlannedStartTime(),
-                encounter.getActualStartTime()
+                encounter.getActualStartTime(),
+                chiefComplaint
         );
     }
 }

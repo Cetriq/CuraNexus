@@ -40,13 +40,15 @@ public class EncounterRepositoryCustomImpl implements EncounterRepositoryCustom 
 
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
 
-        // Main query for results
+        // Main query for results with fetch join for reasons
         CriteriaQuery<Encounter> query = cb.createQuery(Encounter.class);
         Root<Encounter> root = query.from(Encounter.class);
+        root.fetch("reasons", JoinType.LEFT);
 
         List<Predicate> predicates = buildPredicates(cb, root, patientId, status,
                 encounterClass, responsibleUnitId, fromDate, toDate);
 
+        query.distinct(true);
         query.where(predicates.toArray(new Predicate[0]));
 
         // Apply sorting from pageable, default to plannedStartTime DESC
