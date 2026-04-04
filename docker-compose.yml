@@ -433,6 +433,108 @@ services:
       - curanexus-network
 
   # =============================================================================
+  # B5 - Certificates Module
+  # =============================================================================
+  certificates:
+    image: curanexus/certificates:latest
+    container_name: curanexus-certificates
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: certificates
+    environment:
+      SPRING_DATASOURCE_URL: ${CERTIFICATES_DB_URL:-jdbc:postgresql://postgres:5432/curanexus_certificates}
+      SPRING_DATASOURCE_USERNAME: ${CERTIFICATES_DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${CERTIFICATES_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_TABLE: flyway_schema_history_certificates
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8094
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-curanexus}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-curanexus}
+    ports:
+      - "8094:8094"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - curanexus-network
+
+  # =============================================================================
+  # A13 - Forms Module
+  # =============================================================================
+  forms:
+    image: curanexus/forms:latest
+    container_name: curanexus-forms
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: forms
+    environment:
+      SPRING_DATASOURCE_URL: ${FORMS_DB_URL:-jdbc:postgresql://postgres:5432/curanexus_forms}
+      SPRING_DATASOURCE_USERNAME: ${FORMS_DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${FORMS_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_TABLE: flyway_schema_history_forms
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8093
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-curanexus}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-curanexus}
+    ports:
+      - "8093:8093"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - curanexus-network
+
+  # =============================================================================
+  # C1 - Consent Module
+  # =============================================================================
+  consent:
+    image: curanexus/consent:latest
+    container_name: curanexus-consent
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE_NAME: consent
+    environment:
+      SPRING_DATASOURCE_URL: ${CONSENT_DB_URL:-jdbc:postgresql://postgres:5432/curanexus_consent}
+      SPRING_DATASOURCE_USERNAME: ${CONSENT_DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${CONSENT_DB_PASSWORD:-postgres}
+      SPRING_FLYWAY_TABLE: flyway_schema_history_consent
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: 8095
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-curanexus}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-curanexus}
+    ports:
+      - "8095:8095"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - curanexus-network
+
+  # =============================================================================
   # E1 - Integration/Gateway Module
   # =============================================================================
   integration:
@@ -455,6 +557,9 @@ services:
       MEDICATION_SERVICE_URL: ${MEDICATION_SERVICE_URL:-http://medication:8090}
       REFERRAL_SERVICE_URL: ${REFERRAL_SERVICE_URL:-http://referral:8091}
       LAB_SERVICE_URL: ${LAB_SERVICE_URL:-http://lab:8092}
+      FORMS_SERVICE_URL: ${FORMS_SERVICE_URL:-http://forms:8093}
+      CERTIFICATES_SERVICE_URL: ${CERTIFICATES_SERVICE_URL:-http://certificates:8094}
+      CONSENT_SERVICE_URL: ${CONSENT_SERVICE_URL:-http://consent:8095}
     ports:
       - "8085:8085"
     depends_on:
@@ -470,6 +575,9 @@ services:
       - medication
       - referral
       - lab
+      - forms
+      - certificates
+      - consent
     networks:
       - curanexus-network
 

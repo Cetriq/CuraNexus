@@ -27,6 +27,9 @@
         <module>modules/medication</module>
         <module>modules/referral</module>
         <module>modules/lab</module>
+        <module>modules/forms</module>
+        <module>modules/certificates</module>
+        <module>modules/consent</module>
     </modules>
 
     <properties>
