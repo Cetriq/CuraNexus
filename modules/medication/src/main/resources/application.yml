@@ -42,3 +42,17 @@ springdoc:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+# Fass API Integration (REQ-MED-021)
+# Requires agreement with Lif (fass@lif.se)
+# Documentation: https://api.fass.se/documentation
+curanexus:
+  fass:
+    enabled: ${FASS_ENABLED:false}
+    base-url: ${FASS_BASE_URL:https://api.fass.se}
+    api-key: ${FASS_API_KEY:}
+    client-id: ${FASS_CLIENT_ID:}
+    client-secret: ${FASS_CLIENT_SECRET:}
+    connect-timeout: 10s
+    read-timeout: 30s
+    cache-ttl: 15m
